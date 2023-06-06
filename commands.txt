@@ -1,0 +1,16 @@
+change dir in cmd: r:
+change dir in powershell: cd '<path>'
+
+once you're inside mosquitto folder:
+
+net start mosquitto
+#that starts the broker
+
+#then to sub to a topic in cmd
+mosquitto_sub -t <topic> -h <adress(localhost)>
+
+#to publish to that topic in cmd
+mosquitto_pub -t <topic> -h <adress(localhost)> "<message>"
+
+mosquitto IP = 127.0.0.1
+mosquitto PORT = 1883

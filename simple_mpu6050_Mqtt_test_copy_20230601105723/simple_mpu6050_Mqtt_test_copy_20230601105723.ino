@@ -9,11 +9,12 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Adafruit_MPU6050 mpu; 
 
-
+#define I2C_SDA 0
+#define I2C_SCL 4
 const char* ssid = "MaraudersMap";
 const char* password = "Page394%";
 //bei public broker = "broker" teiweise
-const char* mqttBroker = "127.0.0.0";
+const char* mqttBroker = "192.168.0.89";
 const int mqttPort = 1883;
 const char* mqttTopic = "gyro_x";
 
@@ -88,12 +89,12 @@ void setup() {
   Serial.print("Accelerometer range set to: +-8G");
 
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  Serial.print("Gyro range set to: +- 1000 deg/s");
+  Serial.print("Gyro range set to: +- 500 deg/s");
 
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);
   Serial.print("Filter bandwidth set to: 44hz");
   Serial.println("");
-  delay(10000);
+  delay(2000);
 
   // Connect to Wi-Fi
   connectToWifi();
