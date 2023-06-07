@@ -20,10 +20,10 @@ int fadeAmount = 5;  // how many points to fade the LED by
 
 
 
-const char* ssid = "MaraudersMap";
-const char* password = "Page394%";
+const char* ssid = "Keine Ahnung";
+const char* password = "Fragdeinemutter";
 //bei public broker = "broker" teiweise
-const char* mqttBroker = "192.168.0.89";
+const char* mqttBroker = "192.168.0.188";
 const int mqttPort = 1883;
 const char* mqttTopic = "gyro_x";
 
