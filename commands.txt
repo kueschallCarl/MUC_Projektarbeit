@@ -10,7 +10,18 @@ net start mosquitto
 mosquitto_sub -t <topic> -h <adress(localhost)>
 
 #to publish to that topic in cmd
-mosquitto_pub -t <topic> -h <adress(localhost)> "<message>"
+mosquitto_pub -t <topic> -m <adress(localhost)> "<message>"
 
 mosquitto IP = 127.0.0.1
 mosquitto PORT = 1883
+
+mosquitto_pub -t caarl -h 192.168.0.231 -m "hello jonathan"
+mosquitto_sub -t caarl -h 192.168.0.231
+
+const char* ssid = "Keine Ahnung";
+const char* password = "Fragdeinemutter";
+const char* mqttBroker = "192.168.0.188";
+
+const char* ssid = "MaraudersMap";
+const char* password = "Page394%";
+const char* mqttBroker = "192.168.0.89";
