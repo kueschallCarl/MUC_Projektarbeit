@@ -1,4 +1,3 @@
-
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
@@ -7,36 +6,42 @@
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
-Adafruit_MPU6050 mpu; 
+Adafruit_MPU6050 mpu;
 
 int led_red = 26;
 int led_green = 14;
 int led_yellow = 27;
-int brightness = 0;  // how bright the LED is
-int fadeAmount = 5;  // how many points to fade the LED by
+int brightness = 0;      // how bright the LED is
+int fadeAmount = 5;      // how many points to fade the LED by
 
 #define IC2_SDA 33
 #define I2C_SCL 32
 
-
-
 const char* ssid = "MaraudersMap";
 const char* password = "Page394%";
-//bei public broker = "broker" teiweise
 const char* mqttBroker = "192.168.0.89";
 const int mqttPort = 1883;
 const char* mpuTopic = "mpu/K05";
-const char* tempTopic= "temp/K05";
+const char* tempTopic = "temp/K05";
 const char* finishedTopic = "finished/K05";
 
+hw_timer_t* timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+volatile unsigned long previousMillis = 0;
+const unsigned long interval = 1000; // Interval in milliseconds
+
+void IRAM_ATTR onTimer() {
+  portENTER_CRITICAL_ISR(&timerMux);
+  previousMillis += interval;
+  portEXIT_CRITICAL_ISR(&timerMux);
+}
 
 void onMqttMessageReceived(char* topic, byte* payload, unsigned int length) {
   // Handle MQTT message received
   // Convert payload to a string
-  String message;
-  for (unsigned int i = 0; i < length; i++) {
-    message += (char)payload[i];
-  }
+  char message[length + 1];
+  memcpy(message, payload, length);
+  message[length] = '\0';
 
   // Display the received message in the console
   Serial.print("Received message on topic: ");
@@ -44,7 +49,6 @@ void onMqttMessageReceived(char* topic, byte* payload, unsigned int length) {
   Serial.print(", payload: ");
   Serial.println(message);
 }
-
 
 void connectToWifi() {
   WiFi.begin(ssid, password);
@@ -58,8 +62,6 @@ void connectToWifi() {
   Serial.println(WiFi.localIP());
 }
 
-
-
 void setupMqtt() {
   mqttClient.setServer(mqttBroker, mqttPort);
   mqttClient.setCallback(onMqttMessageReceived);
@@ -68,8 +70,6 @@ void setupMqtt() {
   while (!mqttClient.connected()) {
     if (mqttClient.connect("ESP32Client")) {
       Serial.println("connected!");
-      mqttClient.subscribe(mpuTopic);
-      mqttClient.subscribe(tempTopic);
       mqttClient.subscribe(finishedTopic);
     } else {
       Serial.print("failed, retrying in 5 seconds...");
@@ -78,17 +78,13 @@ void setupMqtt() {
   }
 }
 
-
-
-
 void setup() {
   pinMode(led_green, OUTPUT);
   pinMode(led_red, OUTPUT);
   pinMode(led_yellow, OUTPUT);
 
-  //sets the pins for the MPU6050 chip 
-  Wire.begin(33,32);
-  
+  Wire.begin(33, 32);
+
   Serial.begin(115200);
   while (!Serial)
     delay(10);
@@ -100,7 +96,7 @@ void setup() {
     while (1) {
       delay(10);
     }
-  } 
+  }
   Serial.println("MPU6050 Found!");
 
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
@@ -114,33 +110,18 @@ void setup() {
   Serial.println("");
   delay(3000);
 
-  // Connect to Wi-Fi
   connectToWifi();
 
-  // Setup MQTT
   setupMqtt();
+
+  // Set up the hardware timer
+  timer = timerBegin(0, 80, true);              // Timer 0, prescaler 80 (1MHz tick), count up
+  timerAttachInterrupt(timer, &onTimer, true);  // Attach the timer ISR
+  timerAlarmWrite(timer, interval * 1000, true); // Set the alarm to trigger every interval (in microseconds)
+  timerAlarmEnable(timer);                       // Enable the alarm
 }
 
-
-void fade(){
-   // set the brightness of pin 9:
-  analogWrite(led_green, brightness);
-  analogWrite(led_red, brightness);
-  analogWrite(led_yellow, brightness);
-
-
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
-  }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
-}
-
-void blink(){
+void blink() {
   digitalWrite(led_green, HIGH);
   digitalWrite(led_red, HIGH);
   digitalWrite(led_yellow, HIGH);
@@ -153,17 +134,23 @@ void blink(){
 }
 
 void loop() {
-   /* Get new sensor events with the readings */
+  static unsigned long previousTempMillis = 0;
+  static char tempValue[8]; // Buffer to store temperature value
+
+  portENTER_CRITICAL(&timerMux);
+  unsigned long currentMillis = previousMillis;
+  portEXIT_CRITICAL(&timerMux);
+
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  // Publish the g.gyro.x value
-  String gyroXValue = String(g.gyro.x);
-  mqttClient.publish(mpuTopic, gyroXValue.c_str());
-  mqttClient.publish(tempTopic, gyroXValue.c_str());
+  // Publish gyro X value
+  char gyroXValue[8]; // Buffer to store gyro X value
+  snprintf(gyroXValue, sizeof(gyroXValue), "%f", g.gyro.x);
+  mqttClient.publish(mpuTopic, gyroXValue);
+
   blink();
 
-  /* Print out the values */
   Serial.print("Acceleration X: ");
   Serial.print(a.acceleration.x);
   Serial.print(", Y: ");
@@ -180,14 +167,20 @@ void loop() {
   Serial.print(g.gyro.z);
   Serial.println(" rad/s");
 
+  if (currentMillis - previousTempMillis >= interval) {
+    previousTempMillis = currentMillis;
+
+    // Publish temperature value
+    snprintf(tempValue, sizeof(tempValue), "%f", temp.temperature);
+    mqttClient.publish(tempTopic, tempValue);
+  }
+
   Serial.print("Temperature: ");
   Serial.print(temp.temperature);
   Serial.println(" degC");
 
   Serial.println("");
-  delay(500);
+  delay(100);
 
-  // Process MQTT messages
   mqttClient.loop();
 }
-
