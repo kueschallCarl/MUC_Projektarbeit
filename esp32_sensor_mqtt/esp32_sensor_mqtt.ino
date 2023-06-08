@@ -144,6 +144,17 @@ void loop() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
+  // Store sensor values in a list
+  String sensorValues = String(a.acceleration.x) + "," +
+                        String(a.acceleration.y) + "," +
+                        String(a.acceleration.z) + "," +
+                        String(g.gyro.x) + "," +
+                        String(g.gyro.y) + "," +
+                        String(g.gyro.z);
+
+  // Publish the list of sensor values
+  mqttClient.publish(mpuTopic, sensorValues.c_str());
+
   // Publish gyro X value
   char gyroXValue[8]; // Buffer to store gyro X value
   snprintf(gyroXValue, sizeof(gyroXValue), "%f", g.gyro.x);
@@ -151,7 +162,9 @@ void loop() {
 
   blink();
 
-  Serial.print("Acceleration X: ");
+  Serial.print("Sensor Values Tuple: ");
+  Serial.print(sensorValues);
+  Serial.println("Acceleration X: ");
   Serial.print(a.acceleration.x);
   Serial.print(", Y: ");
   Serial.print(a.acceleration.y);
