@@ -20,12 +20,15 @@ int fadeAmount = 5;  // how many points to fade the LED by
 
 
 
-const char* ssid = "Keine Ahnung";
-const char* password = "Fragdeinemutter";
+const char* ssid = "MaraudersMap";
+const char* password = "Page394%";
 //bei public broker = "broker" teiweise
-const char* mqttBroker = "192.168.0.188";
+const char* mqttBroker = "192.168.0.89";
 const int mqttPort = 1883;
-const char* mqttTopic = "gyro_x";
+const char* mpuTopic = "mpu/K05";
+const char* tempTopic= "temp/K05";
+const char* finishedTopic = "finished/K05";
+
 
 void onMqttMessageReceived(char* topic, byte* payload, unsigned int length) {
   // Handle MQTT message received
@@ -65,7 +68,9 @@ void setupMqtt() {
   while (!mqttClient.connected()) {
     if (mqttClient.connect("ESP32Client")) {
       Serial.println("connected!");
-      mqttClient.subscribe(mqttTopic);
+      mqttClient.subscribe(mpuTopic);
+      mqttClient.subscribe(tempTopic);
+      mqttClient.subscribe(finishedTopic);
     } else {
       Serial.print("failed, retrying in 5 seconds...");
       delay(5000);
@@ -154,7 +159,8 @@ void loop() {
 
   // Publish the g.gyro.x value
   String gyroXValue = String(g.gyro.x);
-  mqttClient.publish(mqttTopic, gyroXValue.c_str());
+  mqttClient.publish(mpuTopic, gyroXValue.c_str());
+  mqttClient.publish(tempTopic, gyroXValue.c_str());
   blink();
 
   /* Print out the values */
