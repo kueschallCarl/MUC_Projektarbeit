@@ -13,9 +13,10 @@ int led_green = 14;
 int led_yellow = 27;
 int brightness = 0;      // how bright the LED is
 int fadeAmount = 5;      // how many points to fade the LED by
-
+bool pub_flag = false;
 #define IC2_SDA 33
 #define I2C_SCL 32
+
 
 const char* ssid = "MaraudersMap";
 const char* password = "Page394%";
@@ -36,12 +37,42 @@ void IRAM_ATTR onTimer() {
   portEXIT_CRITICAL_ISR(&timerMux);
 }
 
+void blink() {
+  digitalWrite(led_green, HIGH);
+  //digitalWrite(led_red, HIGH);
+  //digitalWrite(led_yellow, HIGH);
+
+  delay(400);
+
+  digitalWrite(led_green, LOW);
+  //digitalWrite(led_red, LOW);
+  //digitalWrite(led_yellow, LOW);
+}
+
+
 void onMqttMessageReceived(char* topic, byte* payload, unsigned int length) {
   // Handle MQTT message received
   // Convert payload to a string
   char message[length + 1];
   memcpy(message, payload, length);
   message[length] = '\0';
+
+    //strcmp = String Compare which compares C-style strings (char arrays) (==0 means, the Strings are equal)
+   if(strcmp(topic, "finished/K05") == 0) {
+    if(strcmp(message, "0") == 0) {
+      pub_flag = true;
+    }
+    else if(strcmp(message, "1") == 0) {
+      pub_flag = false;
+      blink();
+    }
+    else {
+      return;
+    }
+    Serial.println("pub_flag inside Func: ");
+    Serial.print(pub_flag);
+  }
+
 
   // Display the received message in the console
   Serial.print("Received message on topic: ");
@@ -121,19 +152,10 @@ void setup() {
   timerAlarmEnable(timer);                       // Enable the alarm
 }
 
-void blink() {
-  digitalWrite(led_green, HIGH);
-  digitalWrite(led_red, HIGH);
-  digitalWrite(led_yellow, HIGH);
-
-  delay(30);
-
-  digitalWrite(led_green, LOW);
-  digitalWrite(led_red, LOW);
-  digitalWrite(led_yellow, LOW);
-}
 
 void loop() {
+  Serial.println(pub_flag);
+
   static unsigned long previousTempMillis = 0;
   static char tempValue[8]; // Buffer to store temperature value
 
@@ -145,26 +167,18 @@ void loop() {
   mpu.getEvent(&a, &g, &temp);
 
   // Store sensor values in a list
-  String sensorValues = String(a.acceleration.x) + "," +
+  String sensorValues = "("+ 
+                        String(a.acceleration.x) + "," +
                         String(a.acceleration.y) + "," +
                         String(a.acceleration.z) + "," +
                         String(g.gyro.x) + "," +
                         String(g.gyro.y) + "," +
-                        String(g.gyro.z);
-
-  // Publish the list of sensor values
-  mqttClient.publish(mpuTopic, sensorValues.c_str());
-
-  // Publish gyro X value
-  char gyroXValue[8]; // Buffer to store gyro X value
-  snprintf(gyroXValue, sizeof(gyroXValue), "%f", g.gyro.x);
-  mqttClient.publish(mpuTopic, gyroXValue);
-
-  blink();
+                        String(g.gyro.z) + ")";
 
   Serial.print("Sensor Values Tuple: ");
-  Serial.print(sensorValues);
-  Serial.println("Acceleration X: ");
+  Serial.println(sensorValues);
+  
+  Serial.print("Acceleration X: ");
   Serial.print(a.acceleration.x);
   Serial.print(", Y: ");
   Serial.print(a.acceleration.y);
@@ -180,12 +194,17 @@ void loop() {
   Serial.print(g.gyro.z);
   Serial.println(" rad/s");
 
-  if (currentMillis - previousTempMillis >= interval) {
-    previousTempMillis = currentMillis;
+  if (pub_flag) {
+    // Publish the list of sensor values
+    mqttClient.publish(mpuTopic, sensorValues.c_str());
 
-    // Publish temperature value
-    snprintf(tempValue, sizeof(tempValue), "%f", temp.temperature);
-    mqttClient.publish(tempTopic, tempValue);
+    if (currentMillis - previousTempMillis >= interval) {
+      previousTempMillis = currentMillis;
+
+      // Publish temperature value
+      snprintf(tempValue, sizeof(tempValue), "%f", temp.temperature);
+      mqttClient.publish(tempTopic, tempValue);
+    }
   }
 
   Serial.print("Temperature: ");
@@ -197,3 +216,27 @@ void loop() {
 
   mqttClient.loop();
 }
+
+
+
+// pub_flag = False
+// finishedTopic.message = 0
+  //            -> pub_flag = True
+// finishedTopic.message = 1
+  //            -> pub_flag = False
+
+
+/* void loop(){
+
+    if(pub_flag == True){
+      pub
+      pub
+      pub
+    }
+    else{
+      everything else
+    }
+
+}
+
+*/
