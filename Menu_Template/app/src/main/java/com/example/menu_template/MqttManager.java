@@ -19,6 +19,7 @@ public class MqttManager {
         private MqttCallbackListener callbackListener;
 
 
+
     /**
      * This method sets the CallbackListener
      * The listener should implement the necessary methods defined in the MqttCallback interface
@@ -27,6 +28,33 @@ public class MqttManager {
      */
     public void setCallbackListener(MqttCallbackListener listener) {
         this.callbackListener = listener;
+    }
+
+    /**
+     * Publishes a message to a topic
+     * @param message the message to publish
+     */
+    public void publishToTopic(String message, String topic) {
+        try {
+            MqttMessage mqttMessage = new MqttMessage(message.getBytes());
+            mqttClient.publish(topic, mqttMessage);
+            Log.d("MqttManager", "Published message: " + message + " on topic: " + topic);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Subscribes to a topic
+     * @param topic the topic to subscribe
+     */
+    public void subscribeToTopic(String topic) {
+        try {
+            mqttClient.subscribe(topic);
+            Log.d("MqttManager", "Subscribed to topic: " + topic);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -86,9 +114,6 @@ public class MqttManager {
                     Log.d("MqttManager", "Failed to connect to MQTT broker");
                 }
 
-                //subscribes to certain topics
-                mqttClient.subscribe(MPU_TOPIC);
-                Log.d("MqttManager", "Subscribed to topic: " + MPU_TOPIC);
             } catch (MqttException e) {
                 e.printStackTrace();
             }

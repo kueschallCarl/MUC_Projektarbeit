@@ -14,6 +14,9 @@ import com.example.menu_template.databinding.FragmentSecondBinding;
 import org.eclipse.paho.client.mqttv3.*;
 import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
+import com.example.menu_template.Constants.*;
+
+
 
 /**
  * This fragment hosts the codebase for the visualization of the labyrinth, and with that the entire game-loop
@@ -31,11 +34,18 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
      */
     @Override
     public void onMessageReceived(String topic, String message) {
-        if (topic.equals("mpu/K05")) {
+        if (topic.equals(Constants.MPU_TOPIC)) {
             // Handle received message
             String payload = new String(message);
             // Process the payload as per your game logic
-            Log.d("mpu_message", payload);
+            Log.d(Constants.MPU_TOPIC, payload);
+        }
+
+        if (topic.equals(Constants.TEMP_TOPIC)) {
+            // Handle received message
+            String payload = new String(message);
+            // Process the payload as per your game logic
+            Log.d(Constants.TEMP_TOPIC, payload);
         }
     }
 
@@ -64,6 +74,10 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
         mqttManager = new MqttManager();
         mqttManager.setCallbackListener(this); // Set the fragment as the callback listener
         mqttManager.connect();
+
+        mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
+        mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
+        mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
 
         binding = FragmentSecondBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -100,6 +114,8 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
      */
     @Override
     public void onDestroyView() {
+        //discard this later
+        mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);
         super.onDestroyView();
         binding = null;
         mqttManager.disconnect();
