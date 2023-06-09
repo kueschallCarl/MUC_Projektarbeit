@@ -1,13 +1,17 @@
 package com.example.menu_template;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.menu_template.databinding.FragmentSecondBinding;
@@ -15,7 +19,7 @@ import org.eclipse.paho.client.mqttv3.*;
 import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
-
+import com.google.android.material.snackbar.Snackbar;
 
 
 /**
@@ -49,6 +53,27 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
         }
     }
 
+    @Override
+    public void onConnectionLost() {
+        // Handle connection lost
+        // Show alert to the user
+        showAlert("Connection Lost", "The MQTT connection to "+
+                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
+    }
+    @Override
+    public void onConnectionError(String errorMessage) {
+        // Handle connection error
+        // Show alert to the user with the error message
+        showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
+                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
+    }
+    private void showAlert(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
     /**
      * This method overrides the implementation of creating the View
      * In this case, an MQTT connection is established and utilized and a binding object is created through inflation
@@ -67,21 +92,18 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
      * @return The root view of the fragment.
      */
     @Override
-    public View onCreateView(
-            LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState
-    ) {
-        mqttManager = new MqttManager();
-        mqttManager.setCallbackListener(this); // Set the fragment as the callback listener
-        mqttManager.connect();
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
-        mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
-        mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
+            mqttManager = new MqttManager();
+            mqttManager.setCallbackListener(this); // Set the fragment as the callback listener
+            mqttManager.connect();
 
-        binding = FragmentSecondBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+            mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
+            mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
+            mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
 
+            binding = FragmentSecondBinding.inflate(inflater, container, false);
+            return binding.getRoot();
     }
 
 
@@ -108,6 +130,21 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
             }
         });
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_settings) {
+            // Get to the Settings Fragment
+            NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+            navController.navigate(R.id.action_SecondFragment_to_SettingsFragment);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
 
     /**
      * This method overrides what should happen, whenever this View is destroyed

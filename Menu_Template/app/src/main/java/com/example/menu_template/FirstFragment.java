@@ -2,19 +2,26 @@ package com.example.menu_template;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.menu_template.databinding.FragmentFirstBinding;
-
+import com.google.android.material.snackbar.Snackbar;
+import org.eclipse.paho.client.mqttv3.*;
+import com.example.menu_template.MqttManager;
+import com.example.menu_template.MqttCallbackListener;
+import com.example.menu_template.Constants.*;
 public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
-
+    private MqttManager mqttManager;
 
     /**
      * This method overrides the implementation of creating the View
@@ -37,7 +44,7 @@ public class FirstFragment extends Fragment {
             LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
-
+        mqttManager = new MqttManager();
         binding = FragmentFirstBinding.inflate(inflater, container, false);
         return binding.getRoot();
 
@@ -59,11 +66,30 @@ public class FirstFragment extends Fragment {
              */
             @Override
             public void onClick(View view) {
-                NavHostFragment.findNavController(FirstFragment.this)
-                        .navigate(R.id.action_FirstFragment_to_SecondFragment);
+
+                    NavHostFragment.findNavController(FirstFragment.this)
+                            .navigate(R.id.action_FirstFragment_to_SecondFragment);
+
             }
         });
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_settings) {
+            // Get to the Settings Fragment
+            NavController navController = NavHostFragment.findNavController(this);
+            navController.navigate(R.id.action_FirstFragment_to_SettingsFragment);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+
+
     /**
      * This method overrides what should happen, whenever this View is destroyed
      */

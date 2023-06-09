@@ -7,4 +7,8 @@ package com.example.menu_template;
  */
 public interface MqttCallbackListener {
     void onMessageReceived(String topic, String message);
+
+    void onConnectionLost();
+
+    void onConnectionError(String message);
 }

@@ -10,9 +10,10 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  * This class handles MQTT connection and handles MQTT events
  */
 public class MqttManager {
-
-
-        private static final String MQTT_BROKER_URL = "tcp://192.168.0.89:1883";
+        //tcp://192.168.0.89:1883
+        public String MQTT_BROKER_IP = "192.168.0.89";
+        public String MQTT_BROKER_PORT = "1883";
+        public String MQTT_BROKER_METHOD = "tcp";
         private static final String MQTT_CLIENT_ID = "mosquitto_id";
         private static final String MPU_TOPIC = "mpu/K05";
         private MqttClient mqttClient;
@@ -62,7 +63,7 @@ public class MqttManager {
      */
     public void connect() {
             try {
-                mqttClient = new MqttClient(MQTT_BROKER_URL, MQTT_CLIENT_ID, new MemoryPersistence());
+                mqttClient = new MqttClient(MQTT_BROKER_METHOD+"://"+MQTT_BROKER_IP+":"+MQTT_BROKER_PORT, MQTT_CLIENT_ID, new MemoryPersistence());
                 mqttClient.setCallback(new MqttCallback() {
 
                     /**
@@ -72,6 +73,9 @@ public class MqttManager {
                     @Override
                     public void connectionLost(Throwable cause) {
                         // Handle connection lost
+                        if (callbackListener != null) {
+                            callbackListener.onConnectionLost();
+                        }
                     }
 
                     /**
@@ -116,6 +120,9 @@ public class MqttManager {
 
             } catch (MqttException e) {
                 e.printStackTrace();
+                if (callbackListener != null) {
+                    callbackListener.onConnectionError(e.getMessage());
+                }
             }
         }
 

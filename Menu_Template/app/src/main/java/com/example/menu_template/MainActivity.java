@@ -85,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         if (id == R.id.action_settings) {
+            // Navigate to the SettingsFragment
+            NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+            navController.navigate(R.id.action_FirstFragment_to_SettingsFragment);
             return true;
         }
 
