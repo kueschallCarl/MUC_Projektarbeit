@@ -17,7 +17,7 @@ public class GameLogic implements MqttCallbackListener {
     private final ESPSteering espSteering;
     private final PhoneSteering phoneSteering;
     private int[][] labyrinth;
-    private final int size = 10;
+    private final int size = 28;
 
     public GameLogic(Context context) {
         this.context = context;
@@ -102,7 +102,31 @@ public class GameLogic implements MqttCallbackListener {
                 stack.pop();
             }
         }
+
+        // Check if the end point has adjacent 0's, if not, regenerate the labyrinth
+        if (!hasAdjacentZeros(endX, endY)) {
+            generateLabyrinth();
+        }
     }
+
+    private boolean hasAdjacentZeros(int x, int y) {
+        // Check the four cardinal directions
+        if (x > 0 && labyrinth[x - 1][y] == 0) {
+            return true; // There is a 0 to the north
+        }
+        if (x < size - 1 && labyrinth[x + 1][y] == 0) {
+            return true; // There is a 0 to the south
+        }
+        if (y > 0 && labyrinth[x][y - 1] == 0) {
+            return true; // There is a 0 to the west
+        }
+        if (y < size - 1 && labyrinth[x][y + 1] == 0) {
+            return true; // There is a 0 to the east
+        }
+
+        return false; // No adjacent 0's
+    }
+
 
     private List<int[]> getUnvisitedNeighbors(int x, int y) {
         List<int[]> unvisitedNeighbors = new ArrayList<>();
