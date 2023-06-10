@@ -7,6 +7,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -25,6 +26,7 @@ import com.example.menu_template.databinding.FragmentSettingsBinding;
 
 public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
+    private MqttManager mqttManager;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentSettingsBinding.inflate(inflater, container, false);
@@ -33,7 +35,21 @@ public class SettingsFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Get the singleton instance of MqttManager
+        mqttManager = MqttManager.getInstance();
+
+        // Handle connect button click
+        binding.buttonSaveSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String brokerIP = binding.brokerAddressTextField.getText().toString();
+                mqttManager.MQTT_BROKER_IP = brokerIP;
+                Log.d("MqttManager", "brokerIP: " + mqttManager.MQTT_BROKER_IP);
+            }
+        });
     }
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -53,7 +69,6 @@ public class SettingsFragment extends Fragment {
 
         if (id == R.id.action_settings) {
             // Navigate to the SettingsFragment
-            // The requireActivity() method provides the associated activity for the fragment.
             NavHostFragment.findNavController(this).navigate(R.id.action_FirstFragment_to_SettingsFragment);
             return true;
         }

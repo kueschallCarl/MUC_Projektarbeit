@@ -8,7 +8,14 @@
     <string name="previous">Previous</string>
 
     <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_settings_fragment">Broker Address:</string>
+    <string name="broker_address_label">Broker Address:</string>
+    <string name="steering_method_label">Steering Method:</string>
+
+    <string name="radio_btn_esp32_label">External: Esp32:</string>
+    <string name="radio_btn_phone_label">Internal: Smartphone</string>
+    <string name="button_save_settings_label">Save</string>
+
+
 
     <string name="broker_address_text_field">192.168.0.1</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>

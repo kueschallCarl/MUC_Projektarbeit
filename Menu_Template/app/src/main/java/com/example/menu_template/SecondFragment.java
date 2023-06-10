@@ -26,54 +26,12 @@ import com.google.android.material.snackbar.Snackbar;
  * This fragment hosts the codebase for the visualization of the labyrinth, and with that the entire game-loop
  * This fragment implements the MqttCallbackListener interface to receive MQTT message callbacks
  */
-public class SecondFragment extends Fragment implements MqttCallbackListener{
+public class SecondFragment extends Fragment{
 
     private FragmentSecondBinding binding;
     private MqttManager mqttManager;
 
-    /**
-     * This method implements the MqttCallbackListener interface for onMessageReceived()
-     * @param topic the MQTT topic
-     * @param message the current message received for that MQTT topic
-     */
-    @Override
-    public void onMessageReceived(String topic, String message) {
-        if (topic.equals(Constants.MPU_TOPIC)) {
-            // Handle received message
-            String payload = new String(message);
-            // Process the payload as per your game logic
-            Log.d(Constants.MPU_TOPIC, payload);
-        }
 
-        if (topic.equals(Constants.TEMP_TOPIC)) {
-            // Handle received message
-            String payload = new String(message);
-            // Process the payload as per your game logic
-            Log.d(Constants.TEMP_TOPIC, payload);
-        }
-    }
-
-    @Override
-    public void onConnectionLost() {
-        // Handle connection lost
-        // Show alert to the user
-        showAlert("Connection Lost", "The MQTT connection to "+
-                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
-    }
-    @Override
-    public void onConnectionError(String errorMessage) {
-        // Handle connection error
-        // Show alert to the user with the error message
-        showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
-                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
-    }
-    private void showAlert(String title, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("OK", null)
-                .show();
-    }
     /**
      * This method overrides the implementation of creating the View
      * In this case, an MQTT connection is established and utilized and a binding object is created through inflation
@@ -94,16 +52,11 @@ public class SecondFragment extends Fragment implements MqttCallbackListener{
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-            mqttManager = new MqttManager();
-            mqttManager.setCallbackListener(this); // Set the fragment as the callback listener
-            mqttManager.connect();
+        ESPSteering espSteering = new ESPSteering(requireContext());
 
-            mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
-            mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
-            mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
 
-            binding = FragmentSecondBinding.inflate(inflater, container, false);
-            return binding.getRoot();
+        binding = FragmentSecondBinding.inflate(inflater, container, false);
+        return binding.getRoot();
     }
 
 
