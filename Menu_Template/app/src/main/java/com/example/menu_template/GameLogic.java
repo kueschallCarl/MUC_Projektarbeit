@@ -16,6 +16,10 @@ import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 public class GameLogic implements MqttCallbackListener {
@@ -40,7 +44,13 @@ public class GameLogic implements MqttCallbackListener {
         mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
         mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
 
-        generateLabyrinth();
+        try {
+            generateLabyrinth();
+            Log.d("Labyrinth", "Labyrinth: "+ Arrays.deepToString(this.labyrinth));
+        }
+        catch(Exception e){
+            Log.d("Labyrinth", "Problem generating Labyrinth in GameLogic.java", e);
+        }
     }
 
     private float[] getValuesFromESP() {
@@ -55,22 +65,100 @@ public class GameLogic implements MqttCallbackListener {
         return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
     }
 
-    /**
-     * This method generates a randomly generated 10x10 labyrinth.
-     * The labyrinth is represented as a 2D array of integers.
-     * 0 represents a path, and 1 represents a wall.
-     */
     private void generateLabyrinth() {
-        Random random = new Random();
-        labyrinth = new int[10][10];
+        this.labyrinth = new int[10][10];
 
-        // Generate the labyrinth
+        // Set the boundary walls
         for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
-                // Randomly assign 1 (wall) or 0 (path)
-                labyrinth[i][j] = random.nextInt(2);
+            labyrinth[0][i] = 1;         // Top boundary
+            labyrinth[9][i] = 1;         // Bottom boundary
+            labyrinth[i][0] = 1;         // Left boundary
+            labyrinth[i][9] = 1;         // Right boundary
+        }
+
+        // Set the start and end blocks
+        labyrinth[0][getRandomNumber(1, 8)] = 2;    // Start block on the top row (excluding the corners)
+        labyrinth[9][getRandomNumber(1, 8)] = 3;    // End block on the bottom row (excluding the corners)
+
+        // Generate a random path
+        generatePath(0, getRandomNumber(1, 8), getRandomNumber(1, 8), 9);
+
+        // Set remaining walls and free spaces
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                if (labyrinth[i][j] == 0)
+                    labyrinth[i][j] = 1;     // Set remaining free spaces to walls
+                else if (labyrinth[i][j] == -1)
+                    labyrinth[i][j] = 0;     // Set path markers to free spaces
             }
         }
+    }
+
+    private void generatePath(int startX, int startY, int endX, int endY) {
+        labyrinth[startX][startY] = -1;    // Mark the starting point as part of the path
+
+        int currentX = startX;
+        int currentY = startY;
+
+        while (currentX != endX || currentY != endY) {
+            List<int[]> neighbors = getNeighbors(currentX, currentY);
+            Collections.shuffle(neighbors);     // Randomly shuffle the neighbor list
+
+            boolean pathFound = false;
+            for (int[] neighbor : neighbors) {
+                int neighborX = neighbor[0];
+                int neighborY = neighbor[1];
+
+                if (labyrinth[neighborX][neighborY] == 0) {
+                    labyrinth[neighborX][neighborY] = -1;    // Mark the neighbor as part of the path
+                    currentX = neighborX;
+                    currentY = neighborY;
+                    pathFound = true;
+                    break;
+                }
+            }
+
+            if (!pathFound) {
+                // No available neighbors, backtrack to find a new path
+                boolean backtrack = true;
+                while (backtrack) {
+                    int[] previous = findPrevious(currentX, currentY);
+                    currentX = previous[0];
+                    currentY = previous[1];
+                    if (labyrinth[currentX][currentY] == -1)
+                        labyrinth[currentX][currentY] = 0;    // Reset the previous path marker
+                    else
+                        backtrack = false;
+                }
+            }
+        }
+    }
+
+    private List<int[]> getNeighbors(int x, int y) {
+        List<int[]> neighbors = new ArrayList<>();
+
+        // Add the neighbors above, below, left, and right
+        if (x > 0) neighbors.add(new int[]{x - 1, y});
+        if (x < 9) neighbors.add(new int[]{x + 1, y});
+        if (y > 0) neighbors.add(new int[]{x, y - 1});
+        if (y < 9) neighbors.add(new int[]{x, y + 1});
+
+        return neighbors;
+    }
+
+    private int[] findPrevious(int x, int y) {
+        for (int i = x - 1; i >= 0; i--) {
+            for (int j = y - 1; j >= 0; j--) {
+                if (labyrinth[i][j] == -1)
+                    return new int[]{i, j};
+            }
+        }
+        return new int[]{-1, -1};   // Invalid previous position
+    }
+
+    private int getRandomNumber(int min, int max) {
+        Random random = new Random();
+        return random.nextInt(max - min + 1) + min;
     }
 
     /**
