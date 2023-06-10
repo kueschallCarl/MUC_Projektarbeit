@@ -4,8 +4,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.util.Log;
 
-import com.example.menu_template.Constants.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -178,5 +176,9 @@ public class GameLogic implements MqttCallbackListener {
 
     public PhoneSteering getPhoneSteering() {
         return phoneSteering;
+    }
+
+    public int[][] getLabyrinth() {
+        return labyrinth;
     }
 }
