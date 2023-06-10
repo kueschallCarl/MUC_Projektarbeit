@@ -2,23 +2,12 @@ package com.example.menu_template;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.EditText;
 
-import com.example.menu_template.MqttManager;
-import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Stack;
@@ -30,6 +19,7 @@ public class GameLogic implements MqttCallbackListener {
     private final ESPSteering espSteering;
     private final PhoneSteering phoneSteering;
     private int[][] labyrinth;
+    private final int size = 10;
 
     public GameLogic(Context context) {
         this.context = context;
@@ -46,9 +36,8 @@ public class GameLogic implements MqttCallbackListener {
 
         try {
             generateLabyrinth();
-            Log.d("Labyrinth", "Labyrinth: "+ Arrays.deepToString(this.labyrinth));
-        }
-        catch(Exception e){
+            Log.d("Labyrinth", "Labyrinth: " + Arrays.deepToString(this.labyrinth));
+        } catch (Exception e) {
             Log.d("Labyrinth", "Problem generating Labyrinth in GameLogic.java", e);
         }
     }
@@ -67,20 +56,24 @@ public class GameLogic implements MqttCallbackListener {
 
 
     private void generateLabyrinth() {
-        this.labyrinth = new int[10][10];
+        this.labyrinth = new int[size][size];
 
         // Set all cells as walls
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
                 labyrinth[i][j] = 1;
             }
         }
 
-        // Choose a random starting point
-        int startX = getRandomNumber(0, 9);
-        int startY = getRandomNumber(0, 9);
+        // Choose a random starting point on the top boundary
+        int startX = 0;
+        int startY = getRandomNumber(1, size - 2);
+        labyrinth[startX][startY] = 2; // Mark the starting point as 2
 
-        labyrinth[startX][startY] = 0; // Mark the starting point as part of the maze
+        // Choose a random ending point on the bottom boundary
+        int endX = size - 1;
+        int endY = getRandomNumber(1, size - 2);
+        labyrinth[endX][endY] = 3; // Mark the ending point as 3
 
         // Create a stack to keep track of visited cells
         Stack<int[]> stack = new Stack<>();
@@ -120,13 +113,13 @@ public class GameLogic implements MqttCallbackListener {
         if (x > 1 && labyrinth[x - 2][y] == 1) {
             unvisitedNeighbors.add(new int[]{x - 2, y});
         }
-        if (x < 8 && labyrinth[x + 2][y] == 1) {
+        if (x < size - 2 && labyrinth[x + 2][y] == 1) {
             unvisitedNeighbors.add(new int[]{x + 2, y});
         }
         if (y > 1 && labyrinth[x][y - 2] == 1) {
             unvisitedNeighbors.add(new int[]{x, y - 2});
         }
-        if (y < 8 && labyrinth[x][y + 2] == 1) {
+        if (y < size - 2 && labyrinth[x][y + 2] == 1) {
             unvisitedNeighbors.add(new int[]{x, y + 2});
         }
 
@@ -186,5 +179,4 @@ public class GameLogic implements MqttCallbackListener {
     public PhoneSteering getPhoneSteering() {
         return phoneSteering;
     }
-
 }
