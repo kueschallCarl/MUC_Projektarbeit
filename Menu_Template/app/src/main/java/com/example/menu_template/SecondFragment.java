@@ -45,6 +45,10 @@ public class SecondFragment extends Fragment {
         int colorStart = ContextCompat.getColor(requireContext(), R.color.colorStart);
         int colorEnd = ContextCompat.getColor(requireContext(), R.color.colorEnd);
 
+        // Set the layout parameters for the TableLayout
+        TableLayout.LayoutParams tableParams = new TableLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        tableLayout.setLayoutParams(tableParams);
+
         // Iterate over the labyrinth and create TableRow and TextView for each cell
         for (int i = 0; i < labyrinth.length; i++) {
             TableRow tableRow = new TableRow(requireContext());
