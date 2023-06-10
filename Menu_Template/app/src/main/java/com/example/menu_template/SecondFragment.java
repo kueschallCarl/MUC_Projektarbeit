@@ -31,6 +31,7 @@ public class SecondFragment extends Fragment{
     private FragmentSecondBinding binding;
     private MqttManager mqttManager;
 
+    private GameLogic gameLogic;
 
     /**
      * This method overrides the implementation of creating the View
@@ -52,8 +53,7 @@ public class SecondFragment extends Fragment{
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        ESPSteering espSteering = new ESPSteering(requireContext());
-
+        this.gameLogic = new GameLogic(requireContext());
 
         binding = FragmentSecondBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -105,10 +105,10 @@ public class SecondFragment extends Fragment{
     @Override
     public void onDestroyView() {
         //discard this later
-        mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);
+        gameLogic.mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);
         super.onDestroyView();
         binding = null;
-        mqttManager.disconnect();
+        gameLogic.mqttManager.disconnect();
     }
 
 }

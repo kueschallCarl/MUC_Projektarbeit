@@ -17,7 +17,7 @@ import com.example.menu_template.Constants.*;
 
 public class GameLogic implements MqttCallbackListener{
 
-    private MqttManager mqttManager;
+    public MqttManager mqttManager;
     private Context context;
 
     public GameLogic(Context context) {
