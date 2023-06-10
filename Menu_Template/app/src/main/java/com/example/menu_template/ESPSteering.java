@@ -33,8 +33,8 @@ public class ESPSteering implements MqttCallbackListener{
         this.context = context;
         mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
-
         mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
+
     }
 
     /**

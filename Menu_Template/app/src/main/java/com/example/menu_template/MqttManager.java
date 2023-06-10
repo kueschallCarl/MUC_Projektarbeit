@@ -38,7 +38,7 @@ public class MqttManager {
 
     /**
      * This method sets the CallbackListener
-     * The listener should implement the necessary methods defined in the MqttCallback interface
+     * The listener should implement the necessary methods defined in the MqttCallbackListener interface
      *
      * @param listener the CallbackListener
      * @see MqttCallbackListener
@@ -51,12 +51,17 @@ public class MqttManager {
      * Publishes a message to a topic
      *
      * @param message the message to publish
+     * @param topic   the topic to publish the message to
      */
     public void publishToTopic(String message, String topic) {
         try {
-            MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-            mqttClient.publish(topic, mqttMessage);
-            Log.d("MqttManager", "Published message: " + message + " on topic: " + topic);
+            if (mqttClient != null && mqttClient.isConnected()) {
+                MqttMessage mqttMessage = new MqttMessage(message.getBytes());
+                mqttClient.publish(topic, mqttMessage);
+                Log.d("MqttManager", "Published message: " + message + " on topic: " + topic);
+            } else {
+                Log.d("MqttManager", "Failed to publish message. MQTT client is not connected.");
+            }
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -69,8 +74,12 @@ public class MqttManager {
      */
     public void subscribeToTopic(String topic) {
         try {
-            mqttClient.subscribe(topic);
-            Log.d("MqttManager", "Subscribed to topic: " + topic);
+            if (mqttClient != null && mqttClient.isConnected()) {
+                mqttClient.subscribe(topic);
+                Log.d("MqttManager", "Subscribed to topic: " + topic);
+            } else {
+                Log.d("MqttManager", "Failed to subscribe to topic. MQTT client is not connected.");
+            }
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -84,53 +93,29 @@ public class MqttManager {
             mqttClient = new MqttClient(MQTT_BROKER_METHOD + "://" + MQTT_BROKER_IP + ":" + MQTT_BROKER_PORT, MQTT_CLIENT_ID, new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
 
-                /**
-                 * Handles connection-loss
-                 *
-                 * @param cause the reason behind the loss of connection.
-                 */
                 @Override
                 public void connectionLost(Throwable cause) {
-                    // Handle connection lost
                     if (callbackListener != null) {
                         callbackListener.onConnectionLost();
                     }
                 }
 
-                /**
-                 * @param topic   name of the topic on the message was published to
-                 * @param message the actual message.
-                 * @throws Exception is caught in the catch below
-                 */
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    // Handle received message
                     String payload = new String(message.getPayload());
-                    // Process the payload as per your game logic
                     Log.d("mpu_message", payload);
-
                 }
 
-                /**
-                 * Handles delivery status information
-                 *
-                 * @param token the delivery token associated with the message. Provides information about the delivery status.
-                 */
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
-                    // Handle message delivery complete
                 }
             });
 
-            // Create options instance
             MqttConnectOptions options = new MqttConnectOptions();
-            // Set CleanSessions to true so the broker won't queue any messages for the client while it was disconnected.
             options.setCleanSession(true);
 
-            // Finally attempt to connect to the broker
             mqttClient.connect(options);
 
-            // Check if connection was successful or not and log that information
             if (mqttClient.isConnected()) {
                 Log.d("MqttManager", "Connected to MQTT broker");
             } else {
