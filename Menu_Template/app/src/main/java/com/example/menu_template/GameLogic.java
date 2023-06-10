@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Stack;
 
 public class GameLogic implements MqttCallbackListener {
 
@@ -28,7 +29,6 @@ public class GameLogic implements MqttCallbackListener {
     private Context context;
     private final ESPSteering espSteering;
     private final PhoneSteering phoneSteering;
-
     private int[][] labyrinth;
 
     public GameLogic(Context context) {
@@ -65,101 +65,79 @@ public class GameLogic implements MqttCallbackListener {
         return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
     }
 
+
     private void generateLabyrinth() {
         this.labyrinth = new int[10][10];
 
-        // Set the boundary walls
+        // Set all cells as walls
         for (int i = 0; i < 10; i++) {
-            labyrinth[0][i] = 1;         // Top boundary
-            labyrinth[9][i] = 1;         // Bottom boundary
-            labyrinth[i][0] = 1;         // Left boundary
-            labyrinth[i][9] = 1;         // Right boundary
+            for (int j = 0; j < 10; j++) {
+                labyrinth[i][j] = 1;
+            }
         }
 
-        // Set the start and end blocks
-        labyrinth[0][getRandomNumber(1, 8)] = 2;    // Start block on the top row (excluding the corners)
-        labyrinth[9][getRandomNumber(1, 8)] = 3;    // End block on the bottom row (excluding the corners)
+        // Choose a random starting point
+        int startX = getRandomNumber(0, 9);
+        int startY = getRandomNumber(0, 9);
 
-        // Generate a random path
-        generatePath(0, getRandomNumber(1, 8), getRandomNumber(1, 8), 9);
+        labyrinth[startX][startY] = 0; // Mark the starting point as part of the maze
 
-        // Set remaining walls and free spaces
-        for (int i = 1; i < 9; i++) {
-            for (int j = 1; j < 9; j++) {
-                if (labyrinth[i][j] == 0)
-                    labyrinth[i][j] = 1;     // Set remaining free spaces to walls
-                else if (labyrinth[i][j] == -1)
-                    labyrinth[i][j] = 0;     // Set path markers to free spaces
+        // Create a stack to keep track of visited cells
+        Stack<int[]> stack = new Stack<>();
+        stack.push(new int[]{startX, startY});
+
+        while (!stack.isEmpty()) {
+            int[] currentCell = stack.peek();
+            int currentX = currentCell[0];
+            int currentY = currentCell[1];
+
+            // Get the unvisited neighbors of the current cell
+            List<int[]> unvisitedNeighbors = getUnvisitedNeighbors(currentX, currentY);
+            if (!unvisitedNeighbors.isEmpty()) {
+                // Choose a random unvisited neighbor
+                int[] randomNeighbor = unvisitedNeighbors.get(getRandomNumber(0, unvisitedNeighbors.size() - 1));
+                int neighborX = randomNeighbor[0];
+                int neighborY = randomNeighbor[1];
+
+                // Remove the wall between the current cell and the chosen neighbor
+                int wallX = (currentX + neighborX) / 2;
+                int wallY = (currentY + neighborY) / 2;
+                labyrinth[wallX][wallY] = 0;
+
+                labyrinth[neighborX][neighborY] = 0; // Mark the neighbor as part of the maze
+                stack.push(new int[]{neighborX, neighborY});
+            } else {
+                // All neighbors visited, backtrack
+                stack.pop();
             }
         }
     }
 
-    private void generatePath(int startX, int startY, int endX, int endY) {
-        labyrinth[startX][startY] = -1;    // Mark the starting point as part of the path
+    private List<int[]> getUnvisitedNeighbors(int x, int y) {
+        List<int[]> unvisitedNeighbors = new ArrayList<>();
 
-        int currentX = startX;
-        int currentY = startY;
-
-        while (currentX != endX || currentY != endY) {
-            List<int[]> neighbors = getNeighbors(currentX, currentY);
-            Collections.shuffle(neighbors);     // Randomly shuffle the neighbor list
-
-            boolean pathFound = false;
-            for (int[] neighbor : neighbors) {
-                int neighborX = neighbor[0];
-                int neighborY = neighbor[1];
-
-                if (labyrinth[neighborX][neighborY] == 0) {
-                    labyrinth[neighborX][neighborY] = -1;    // Mark the neighbor as part of the path
-                    currentX = neighborX;
-                    currentY = neighborY;
-                    pathFound = true;
-                    break;
-                }
-            }
-
-            if (!pathFound) {
-                // No available neighbors, backtrack to find a new path
-                boolean backtrack = true;
-                while (backtrack) {
-                    int[] previous = findPrevious(currentX, currentY);
-                    currentX = previous[0];
-                    currentY = previous[1];
-                    if (labyrinth[currentX][currentY] == -1)
-                        labyrinth[currentX][currentY] = 0;    // Reset the previous path marker
-                    else
-                        backtrack = false;
-                }
-            }
+        // Check the four cardinal directions
+        if (x > 1 && labyrinth[x - 2][y] == 1) {
+            unvisitedNeighbors.add(new int[]{x - 2, y});
         }
-    }
-
-    private List<int[]> getNeighbors(int x, int y) {
-        List<int[]> neighbors = new ArrayList<>();
-
-        // Add the neighbors above, below, left, and right
-        if (x > 0) neighbors.add(new int[]{x - 1, y});
-        if (x < 9) neighbors.add(new int[]{x + 1, y});
-        if (y > 0) neighbors.add(new int[]{x, y - 1});
-        if (y < 9) neighbors.add(new int[]{x, y + 1});
-
-        return neighbors;
-    }
-
-    private int[] findPrevious(int x, int y) {
-        for (int i = x - 1; i >= 0; i--) {
-            for (int j = y - 1; j >= 0; j--) {
-                if (labyrinth[i][j] == -1)
-                    return new int[]{i, j};
-            }
+        if (x < 8 && labyrinth[x + 2][y] == 1) {
+            unvisitedNeighbors.add(new int[]{x + 2, y});
         }
-        return new int[]{-1, -1};   // Invalid previous position
+        if (y > 1 && labyrinth[x][y - 2] == 1) {
+            unvisitedNeighbors.add(new int[]{x, y - 2});
+        }
+        if (y < 8 && labyrinth[x][y + 2] == 1) {
+            unvisitedNeighbors.add(new int[]{x, y + 2});
+        }
+
+        return unvisitedNeighbors;
     }
 
     private int getRandomNumber(int min, int max) {
         Random random = new Random();
         return random.nextInt(max - min + 1) + min;
     }
+
 
     /**
      * This method implements the MqttCallbackListener interface for onMessageReceived()
@@ -209,7 +187,4 @@ public class GameLogic implements MqttCallbackListener {
         return phoneSteering;
     }
 
-    public int[][] getLabyrinth() {
-        return labyrinth;
-    }
 }
