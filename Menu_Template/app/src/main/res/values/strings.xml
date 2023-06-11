@@ -17,6 +17,6 @@
 
 
 
-    <string name="broker_address_text_field">192.168.0.1</string>
+    <string name="broker_address_text_field">192.168.0.89</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

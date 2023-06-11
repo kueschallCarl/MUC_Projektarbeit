@@ -1,14 +1,17 @@
 package com.example.menu_template;
 
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.RadioGroup;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -22,6 +25,8 @@ public class SecondFragment extends Fragment {
 
     private FragmentSecondBinding binding;
     private GameLogic gameLogic;
+    private String SteeringMethod;
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -31,6 +36,30 @@ public class SecondFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        SettingsFragment settingsFragment = new SettingsFragment();
+        try {
+            Log.d("SteeringMethod", "Test: " + settingsFragment.test);
+        }
+        catch (Exception e){
+            Log.d("SteeringMethod", "Issue accessing test attribute of instance: "+ e);
+        }
+        try {
+            settingsFragment.test = 15;
+            Log.d("SteeringMethod", "Test: " + settingsFragment.test);
+        }
+        catch (Exception e){
+            Log.d("SteeringMethod", "Issue updating test attribute of instance: "+ e);
+        }
+
+        try {
+            SettingsDatabase settingsDatabase = SettingsDatabase.getInstance(requireContext());
+            String steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
+            Log.d("SteeringMethod", "Method: " + steeringMethod);
+        }
+        catch (Exception e){
+            Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
+        }
 
         gameLogic = new GameLogic(requireContext());
         int[][] labyrinth = gameLogic.getLabyrinth();
@@ -86,6 +115,14 @@ public class SecondFragment extends Fragment {
 
         ImageView labyrinthImageView = view.findViewById(R.id.labyrinthImageView);
         labyrinthImageView.setImageBitmap(bitmap);
+    }
+
+    private void showAlert(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
     @Override
     public void onDestroyView() {

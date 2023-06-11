@@ -14,8 +14,8 @@ public class GameLogic implements MqttCallbackListener {
 
     public MqttManager mqttManager;
     private Context context;
-    private final ESPSteering espSteering;
-    private final PhoneSteering phoneSteering;
+    public final ESPSteering espSteering;
+    public final PhoneSteering phoneSteering;
     private int[][] labyrinth;
     private final int size = 28;
 
@@ -40,7 +40,7 @@ public class GameLogic implements MqttCallbackListener {
         }
     }
 
-    private float[] getValuesFromESP() {
+    private float[] getValuesFromESPSensor() {
         // Replace with your implementation of getting values from ESP steering
         float accX = espSteering.getAccX();
         float accY = espSteering.getAccY();
@@ -50,6 +50,77 @@ public class GameLogic implements MqttCallbackListener {
         float gyroZ = espSteering.getGyroZ();
 
         return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
+    }
+
+    private float[] getValuesFromPhoneSensor() {
+        // Replace with your implementation of getting values from ESP steering
+        float accX = phoneSteering.getAccX();
+        float accY = phoneSteering.getAccY();
+        float accZ = phoneSteering.getAccZ();
+        float gyroX = phoneSteering.getGyroX();
+        float gyroY = phoneSteering.getGyroY();
+        float gyroZ = phoneSteering.getGyroZ();
+
+        return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
+    }
+
+
+    private int parsePlayerDirection(float[] sensorData) {
+        // Assuming the gyro values determine the direction
+        float gyroX = sensorData[3];
+        float gyroY = sensorData[4];
+        float gyroZ = sensorData[5];
+
+        // Adjust the thresholds based on your specific requirements
+        float threshold = 0.5f;
+
+        // Check the absolute values of gyroX and gyroY to determine the direction
+        if (Math.abs(gyroX) > Math.abs(gyroY)) {
+            if (gyroX > threshold) {
+                // Player is tilting the phone or ESP to the right
+                int direction = 0;
+                Log.d("direction", "Returned direction: " + direction);
+                return direction; // Right direction
+            } else if (gyroX < -threshold) {
+                // Player is tilting the phone or ESP to the left
+                int direction = 1;
+                Log.d("direction", "Returned direction: " + direction);
+                return direction; // Left direction
+            }
+        } else {
+            if (gyroY > threshold) {
+                // Player is tilting the phone or ESP forward
+                int direction = 2;
+                Log.d("direction", "Returned direction: " + direction);
+                return direction; // Forward direction
+            } else if (gyroY < -threshold) {
+                // Player is tilting the phone or ESP backward
+                int direction = 3;
+                Log.d("direction", "Returned direction: " + direction);
+                return direction; // Backward direction
+            }
+        }
+
+        // If none of the conditions match, return a default direction
+        int defaultDirection = -1;
+        Log.d("direction", "Returned default direction: " + defaultDirection);
+        return defaultDirection;
+    }
+
+
+    public int getPlayerDirection(String steeringType){
+        float[] sensor_data = new float[6];
+        switch (steeringType) {
+            case "ESP":
+                this.espSteering.startSensors();
+                sensor_data = getValuesFromESPSensor();
+                break;
+            case "Phone":
+                this.phoneSteering.startSensors();
+                sensor_data = getValuesFromPhoneSensor();
+                break;
+        }
+        return parsePlayerDirection(sensor_data);
     }
 
 

@@ -1,6 +1,7 @@
 package com.example.menu_template;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,9 +35,13 @@ public class ESPSteering implements MqttCallbackListener{
         mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
 
-        mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
     }
 
+
+    public void startSensors() {
+        mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
+
+    }
     /**
      * This method implements the MqttCallbackListener interface for onMessageReceived()
      * @param topic the MQTT topic
