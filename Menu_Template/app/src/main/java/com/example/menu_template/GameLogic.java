@@ -18,6 +18,8 @@ public class GameLogic implements MqttCallbackListener {
     public final PhoneSteering phoneSteering;
     private int[][] labyrinth;
     private final int size = 28;
+    private int lastValidDirection = -1; // Store the last valid direction
+
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
@@ -95,6 +97,7 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
+
     private int parsePlayerDirection(float[] sensorData) {
         // Assuming the gyro values determine the direction
         float gyroX = sensorData[3];
@@ -102,40 +105,31 @@ public class GameLogic implements MqttCallbackListener {
         float gyroZ = sensorData[5];
 
         // Adjust the thresholds based on your specific requirements
-        float threshold = 0.5f;
+        float threshold = 0.3f;
 
         // Check the absolute values of gyroX and gyroY to determine the direction
         if (Math.abs(gyroX) > Math.abs(gyroY)) {
             if (gyroX > threshold) {
                 // Player is tilting the phone or ESP to the right
-                int direction = 0;
-                Log.d("direction", "Returned direction: " + direction);
-                return direction; // Right direction
+                lastValidDirection = 0;
             } else if (gyroX < -threshold) {
                 // Player is tilting the phone or ESP to the left
-                int direction = 1;
-                Log.d("direction", "Returned direction: " + direction);
-                return direction; // Left direction
+                lastValidDirection = 1;
             }
         } else {
             if (gyroY > threshold) {
                 // Player is tilting the phone or ESP forward
-                int direction = 2;
-                Log.d("direction", "Returned direction: " + direction);
-                return direction; // Forward direction
+                lastValidDirection = 2;
             } else if (gyroY < -threshold) {
                 // Player is tilting the phone or ESP backward
-                int direction = 3;
-                Log.d("direction", "Returned direction: " + direction);
-                return direction; // Backward direction
+                lastValidDirection = 3;
             }
         }
 
-        // If none of the conditions match, return a default direction
-        int defaultDirection = -1;
-        Log.d("direction", "Returned default direction: " + defaultDirection);
-        return defaultDirection;
+        Log.d("direction", "Returned direction: " + lastValidDirection);
+        return lastValidDirection;
     }
+
 
 
     public int getPlayerDirection(String steeringType){
