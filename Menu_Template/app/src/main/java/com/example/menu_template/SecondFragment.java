@@ -51,9 +51,8 @@ public class SecondFragment extends Fragment {
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
         }
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
+        gameLogic.startGameLoop(steeringMethod);
         drawLabyrinth();
-        ESPSteering espSteering = new ESPSteering(requireContext());
-        espSteering.startSensors();
 
     }
 

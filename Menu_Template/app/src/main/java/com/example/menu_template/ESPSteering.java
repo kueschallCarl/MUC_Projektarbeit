@@ -32,6 +32,7 @@ public class ESPSteering implements MqttCallbackListener{
     private float gyro_x;
     private float gyro_y;
     private float gyro_z;
+
     public ESPSteering(Context context) {
         this.context = context;
         mqttManager = MqttManager.getInstance();
@@ -59,23 +60,31 @@ public class ESPSteering implements MqttCallbackListener{
             parseAndAssignValues(message);
             // Handle received message
             String payload = new String(message);
+
             // Process the payload as per your game logic
             Log.d(Constants.MPU_TOPIC, payload);
         }
-
-
     }
+
 
     private void parseAndAssignValues(String message) {
         String[] values = message.replaceAll("[()]", "").split(",");
-        Log.d("parsedValuesFromMPUMessage", Arrays.toString(values));
         if (values.length == 6) {
-            acc_x = Float.parseFloat(values[0]);
-            acc_y = Float.parseFloat(values[1]);
-            acc_z = Float.parseFloat(values[2]);
-            gyro_x = Float.parseFloat(values[3]);
-            gyro_y = Float.parseFloat(values[4]);
-            gyro_z = Float.parseFloat(values[5]);
+            try {
+                acc_x = Float.parseFloat(values[0]);
+                acc_y = Float.parseFloat(values[1]);
+                acc_z = Float.parseFloat(values[2]);
+                gyro_x = Float.parseFloat(values[3]);
+                gyro_y = Float.parseFloat(values[4]);
+                gyro_z = Float.parseFloat(values[5]);
+
+                Log.d("ParsedValues", "acc_x: " + acc_x + ", acc_y: " + acc_y + ", acc_z: " + acc_z
+                        + ", gyro_x: " + gyro_x + ", gyro_y: " + gyro_y + ", gyro_z: " + gyro_z);
+            } catch (NumberFormatException e) {
+                Log.e("ParseError", "Error parsing values: " + e.getMessage());
+            }
+        } else {
+            Log.d("NumberOfValues", "Invalid number of values: " + values.length);
         }
     }
 
