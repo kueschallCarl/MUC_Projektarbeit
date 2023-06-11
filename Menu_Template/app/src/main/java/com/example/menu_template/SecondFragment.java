@@ -27,6 +27,8 @@ public class SecondFragment extends Fragment {
     private GameLogic gameLogic;
     private String steeringMethod;
     private SettingsDatabase settingsDatabase;
+    private ImageView labyrinthImageView; // Declare the ImageView as a class-level variable
+    private View fragmentView; // Declare the view as a class-level variable
 
 
     @Override
@@ -37,6 +39,7 @@ public class SecondFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        fragmentView = view; // Assign the view to the class-level variable
 
         SettingsFragment settingsFragment = new SettingsFragment();
         try {
@@ -49,6 +52,10 @@ public class SecondFragment extends Fragment {
         }
 
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
+        drawLabyrinth();
+    }
+
+    private void drawLabyrinth() {
         int[][] labyrinth = gameLogic.getLabyrinth();
 
         // Create a new bitmap to draw the labyrinth
@@ -100,7 +107,7 @@ public class SecondFragment extends Fragment {
             }
         }
 
-        ImageView labyrinthImageView = view.findViewById(R.id.labyrinthImageView);
+        labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
         labyrinthImageView.setImageBitmap(bitmap);
     }
 
@@ -111,11 +118,10 @@ public class SecondFragment extends Fragment {
                 .setPositiveButton("OK", null)
                 .show();
     }
+
     @Override
     public void onDestroyView() {
-        gameLogic.mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);
         super.onDestroyView();
         binding = null;
-        gameLogic.mqttManager.disconnect();
     }
 }
