@@ -1,13 +1,14 @@
 package com.example.menu_template;
 
-import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -34,53 +35,58 @@ public class SecondFragment extends Fragment {
         gameLogic = new GameLogic(requireContext());
         int[][] labyrinth = gameLogic.getLabyrinth();
 
-        TableLayout tableLayout = view.findViewById(R.id.tableLayout);
+        // Create a new bitmap to draw the labyrinth
+        int cellSize = 50;
+        int width = labyrinth.length * cellSize;
+        int height = labyrinth[0].length * cellSize;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
 
-        // Clear the existing views from the TableLayout
-        tableLayout.removeAllViews();
+        // Clear the canvas
+        canvas.drawColor(Color.WHITE);
 
-        // Get the color resources using ContextCompat
-        int colorEmptyCell = ContextCompat.getColor(requireContext(), R.color.colorEmptyCell);
-        int colorWall = ContextCompat.getColor(requireContext(), R.color.colorWall);
-        int colorStart = ContextCompat.getColor(requireContext(), R.color.colorStart);
-        int colorEnd = ContextCompat.getColor(requireContext(), R.color.colorEnd);
+        // Create the paint objects for different cell colors
+        Paint emptyCellPaint = new Paint();
+        emptyCellPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEmptyCell));
 
-        // Set the layout parameters for the TableLayout
-        TableLayout.LayoutParams tableParams = new TableLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        tableLayout.setLayoutParams(tableParams);
+        Paint wallPaint = new Paint();
+        wallPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorWall));
 
-        // Iterate over the labyrinth and create TableRow and TextView for each cell
+        Paint startPaint = new Paint();
+        startPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorStart));
+
+        Paint endPaint = new Paint();
+        endPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEnd));
+
+        // Draw the labyrinth on the canvas
         for (int i = 0; i < labyrinth.length; i++) {
-            TableRow tableRow = new TableRow(requireContext());
-
             for (int j = 0; j < labyrinth[i].length; j++) {
-                TextView textView = new TextView(requireContext());
-                textView.setText(String.valueOf(labyrinth[i][j]));
-                textView.setPadding(10, 10, 10, 10);
+                int cellValue = labyrinth[i][j];
+                float left = i * cellSize;
+                float top = j * cellSize;
+                float right = left + cellSize;
+                float bottom = top + cellSize;
 
-                // Customize the appearance based on the cell value
-                switch (labyrinth[i][j]) {
+                switch (cellValue) {
                     case 0:
-                        textView.setBackgroundColor(colorEmptyCell);
+                        canvas.drawRect(left, top, right, bottom, emptyCellPaint);
                         break;
                     case 1:
-                        textView.setBackgroundColor(colorWall);
+                        canvas.drawRect(left, top, right, bottom, wallPaint);
                         break;
                     case 2:
-                        textView.setBackgroundColor(colorStart);
+                        canvas.drawRect(left, top, right, bottom, startPaint);
                         break;
                     case 3:
-                        textView.setBackgroundColor(colorEnd);
+                        canvas.drawRect(left, top, right, bottom, endPaint);
                         break;
                 }
-
-                tableRow.addView(textView);
             }
-
-            tableLayout.addView(tableRow);
         }
-    }
 
+        ImageView labyrinthImageView = view.findViewById(R.id.labyrinthImageView);
+        labyrinthImageView.setImageBitmap(bitmap);
+    }
     @Override
     public void onDestroyView() {
         gameLogic.mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);

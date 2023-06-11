@@ -10,15 +10,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.5" />
+        app:layout_constraintGuide_percent="0.0" />
 
-    <TableLayout
-        android:id="@+id/tableLayout"
+    <ImageView
+        android:id="@+id/labyrinthImageView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:scaleType="centerInside"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_default="wrap"
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintDimensionRatio="1:1" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
