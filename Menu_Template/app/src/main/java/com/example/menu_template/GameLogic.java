@@ -102,33 +102,12 @@ public class GameLogic implements MqttCallbackListener {
                 stack.pop();
             }
         }
-
-        // Shift each row in the labyrinth array to the right
-        for (int i = 0; i < size; i++) {
-            int[] row = labyrinth[i];
-            int[] newRow = new int[size + 1];
-            System.arraycopy(row, 0, newRow, 1, size);
-            newRow[0] = 1; // Set the element at index 0 as 1
-            labyrinth[i] = newRow;
-        }
-
-// Increase the number of rows in the labyrinth array
-        int[][] newLabyrinth = new int[size + 1][size + 1];
-
-// Shift the contents downward
-        System.arraycopy(labyrinth, 0, newLabyrinth, 1, size);
-
-// Insert a row of ones at the beginning
-        Arrays.fill(newLabyrinth[0], 1);
-
-// Update the labyrinth reference
-        labyrinth = newLabyrinth;
-
-        // Check if the end point has adjacent 0's, if not, regenerate the labyrinth
-        if (!hasAdjacentZeros(endX, endY)) {
-            generateLabyrinth();
-        }
-    }
+                // Check if the end point has adjacent 0's, if not, regenerate the labyrinth
+                if (!hasAdjacentZeros(endX, endY)) {
+                    Log.d("Labyrinth", "Labyrinth before regen: " + Arrays.deepToString(this.labyrinth));
+                    generateLabyrinth();
+                }
+            }
 
     private boolean hasAdjacentZeros(int x, int y) {
         // Check the four cardinal directions
