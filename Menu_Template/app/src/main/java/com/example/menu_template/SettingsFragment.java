@@ -52,7 +52,7 @@ public class SettingsFragment extends Fragment {
             public void onClick(View v) {
                 String brokerIP = binding.brokerAddressTextField.getText().toString();
                 mqttManager.MQTT_BROKER_IP = brokerIP;
-                settingsDatabase.saveSetting(brokerIP, SettingsDatabase.COLUMN_BROKER_IP);
+                settingsDatabase.updateLastSetting(brokerIP, SettingsDatabase.COLUMN_BROKER_IP);
                 Log.d("MqttManager", "brokerIP: " + mqttManager.MQTT_BROKER_IP);
             }
         });
@@ -120,7 +120,7 @@ public class SettingsFragment extends Fragment {
                 }
 
                 // Save the selected steering method to the database
-                settingsDatabase.saveSetting(SteeringMethod, SettingsDatabase.COLUMN_STEERING_METHOD);
+                settingsDatabase.updateLastSetting(SteeringMethod, SettingsDatabase.COLUMN_STEERING_METHOD);
                 Log.d("Database", "Steering method saved: " + SteeringMethod);
 
                 // Do something with the selected steering method

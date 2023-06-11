@@ -56,6 +56,27 @@ public class SettingsDatabase extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void updateLastSetting(String setting, String column) {
+        SQLiteDatabase db = getWritableDatabase();
+        String countQuery = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        Cursor cursor = db.rawQuery(countQuery, null);
+        cursor.moveToFirst();
+        int rowCount = cursor.getInt(0);
+        cursor.close();
+
+        if (rowCount > 0) {
+            ContentValues values = new ContentValues();
+            values.put(column, setting);
+            String whereClause = COLUMN_ID + " = (SELECT MAX(" + COLUMN_ID + ") FROM " + TABLE_NAME + ")";
+            db.update(TABLE_NAME, values, whereClause, null);
+        } else {
+            saveSetting(setting, column);
+        }
+
+        db.close();
+    }
+
+
     public String getSetting(String columnName) {
         SQLiteDatabase db = getReadableDatabase();
         String selectQuery = "SELECT * FROM " + TABLE_NAME + " ORDER BY " + COLUMN_ID + " DESC LIMIT 1";
