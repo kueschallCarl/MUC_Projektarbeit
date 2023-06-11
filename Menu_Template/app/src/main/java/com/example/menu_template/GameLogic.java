@@ -27,7 +27,7 @@ public class GameLogic implements MqttCallbackListener {
         mqttManager.connect();
 
         this.espSteering = new ESPSteering(context);
-        this.phoneSteering = new PhoneSteering();
+        this.phoneSteering = new PhoneSteering(context);
 
         mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
         mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
