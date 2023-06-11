@@ -44,23 +44,28 @@ public class GameLogic implements MqttCallbackListener {
         Log.d("gameLoop", "Game Loop started");
         startSensors(steeringType);
         Log.d("gameLoop", "Sensors started");
-        while (true) {
-            int playerDirection = getPlayerDirection(steeringType);
-            Log.d("playerDirection", String.valueOf(playerDirection));
-            labyrinth = movePlayer(labyrinth, playerDirection);
 
-            if (isLabyrinthEmpty(labyrinth)) {
-                showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
-                break;
-            }
+        new Thread(() -> {
+            while (!Thread.interrupted()) {
+                int playerDirection = getPlayerDirection(steeringType);
+                Log.d("playerDirection", String.valueOf(playerDirection));
+                labyrinth = movePlayer(labyrinth, playerDirection);
 
-            try {
-                Thread.sleep(100); // Add a 100ms delay
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                if (isLabyrinthEmpty(labyrinth)) {
+                    showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
+                    break;
+                }
+
+                try {
+                    Thread.sleep(100); // Add a 100ms delay
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
+                }
             }
-        }
+        }).start();
     }
+
 
     private float[] getValuesFromESPSensor() {
         // Replace with your implementation of getting values from ESP steering
