@@ -21,13 +21,12 @@ public class GameLogic implements MqttCallbackListener {
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
-        this.espSteering = new ESPSteering(context);
-        this.phoneSteering = new PhoneSteering(context);
-
         this.mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
         mqttManager.connect(settingsDatabase);
 
+        this.espSteering = new ESPSteering(context);
+        this.phoneSteering = new PhoneSteering(context);
 
         mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
         mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
