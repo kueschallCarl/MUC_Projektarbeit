@@ -40,6 +40,29 @@ public class GameLogic implements MqttCallbackListener {
         }
     }
 
+
+    public void startGameLoop(String steeringType) {
+        Log.d("gameLoop", "Game Loop started");
+        startSensors(steeringType);
+        Log.d("gameLoop", "Sensors started");
+        while (true) {
+            int playerDirection = getPlayerDirection(steeringType);
+            Log.d("playerDirection", String.valueOf(playerDirection));
+            labyrinth = movePlayer(labyrinth, playerDirection);
+
+            if (isLabyrinthEmpty(labyrinth)) {
+                showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
+                break;
+            }
+
+            try {
+                Thread.sleep(100); // Add a 100ms delay
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private float[] getValuesFromESPSensor() {
         // Replace with your implementation of getting values from ESP steering
         float accX = espSteering.getAccX();
@@ -48,6 +71,7 @@ public class GameLogic implements MqttCallbackListener {
         float gyroX = espSteering.getGyroX();
         float gyroY = espSteering.getGyroY();
         float gyroZ = espSteering.getGyroZ();
+        Log.d("ESPSensor", "ESPSensorValue: "+ Arrays.toString(new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ}));
 
         return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
     }
@@ -60,6 +84,8 @@ public class GameLogic implements MqttCallbackListener {
         float gyroX = phoneSteering.getGyroX();
         float gyroY = phoneSteering.getGyroY();
         float gyroZ = phoneSteering.getGyroZ();
+
+        Log.d("PhoneSensor", "PhoneSensorValue: "+ Arrays.toString(new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ}));
 
         return new float[]{accX, accY, accZ, gyroX, gyroY, gyroZ};
     }
@@ -111,17 +137,128 @@ public class GameLogic implements MqttCallbackListener {
     public int getPlayerDirection(String steeringType){
         float[] sensor_data = new float[6];
         switch (steeringType) {
-            case "ESP":
-                this.espSteering.startSensors();
+            case "ESP32":
                 sensor_data = getValuesFromESPSensor();
                 break;
             case "Phone":
-                this.phoneSteering.startSensors();
                 sensor_data = getValuesFromPhoneSensor();
                 break;
         }
         return parsePlayerDirection(sensor_data);
     }
+
+    public void startSensors(String steeringType) {
+        switch (steeringType) {
+            case "ESP32":
+                this.espSteering.startSensors();
+                Log.d("gameLoop", "ESPSensor started");
+                break;
+            case "Phone":
+                this.phoneSteering.startSensors();
+                Log.d("gameLoop", "PhoneSensor started");
+                break;
+            default:
+                Log.d("gameLoop", "Steering Type unknown " + steeringType);
+        }
+    }
+
+    public void stopSensors(String steeringType) {
+        switch (steeringType) {
+            case "ESP32":
+                this.espSteering.stopSensors();
+                break;
+            case "Phone":
+                this.phoneSteering.stopSensors();
+                break;
+        }
+    }
+
+    public int[][] movePlayer(int[][] labyrinth, int playerDirection) {
+        int playerX = -1;
+        int playerY = -1;
+
+        // Find the current position of the player (value 2) in the labyrinth
+        for (int i = 0; i < labyrinth.length; i++) {
+            for (int j = 0; j < labyrinth[i].length; j++) {
+                if (labyrinth[i][j] == 2) {
+                    playerX = i;
+                    playerY = j;
+                    break;
+                }
+            }
+        }
+
+        if (playerX == -1 || playerY == -1) {
+            // Player not found in the labyrinth
+            Log.d("movePlayer", "Player not found in the labyrinth");
+            return labyrinth;
+        }
+
+        // Determine the new position based on the player's direction
+        int newPlayerX = playerX;
+        int newPlayerY = playerY;
+
+        switch (playerDirection) {
+            case 0: // Right direction
+                newPlayerY++;
+                break;
+            case 1: // Left direction
+                newPlayerY--;
+                break;
+            case 2: // Forward direction
+                newPlayerX--;
+                break;
+            case 3: // Backward direction
+                newPlayerX++;
+                break;
+            default:
+                // Invalid direction
+                Log.d("movePlayer", "Invalid direction: " + playerDirection);
+                return labyrinth;
+        }
+
+        // Check if the new position is within the bounds of the labyrinth
+        if (newPlayerX < 0 || newPlayerX >= labyrinth.length || newPlayerY < 0 || newPlayerY >= labyrinth[0].length) {
+            // Player is out of bounds
+            Log.d("movePlayer", "Player is out of bounds");
+            return labyrinth;
+        }
+
+        // Check if the new position is a wall (value 1)
+        if (labyrinth[newPlayerX][newPlayerY] == 1) {
+            // Player cannot move to a wall
+            Log.d("movePlayer", "Player cannot move to a wall");
+            return labyrinth;
+        }
+
+        // Move the player to the new position
+        labyrinth[playerX][playerY] = 0; // Set the current position to 0 (empty space)
+        labyrinth[newPlayerX][newPlayerY] = 2; // Set the new position to 2 (player)
+
+        // Check if the new position is the winning position (value 3)
+        if (labyrinth[newPlayerX][newPlayerY] == 3) {
+            Log.d("movePlayer", "Player won the game!");
+            // Set all elements in the labyrinth to 0 (empty space)
+            for (int[] ints : labyrinth) {
+                Arrays.fill(ints, 0);
+            }
+            return labyrinth;
+        }
+
+        return labyrinth;
+    }
+
+    public boolean isLabyrinthEmpty(int[][] labyrinth) {
+        for (int i = 0; i < labyrinth.length; i++) {
+            for (int j = 0; j < labyrinth[i].length; j++) {
+                if (labyrinth[i][j] != 0) {
+                    return false; // Found a non-zero element, labyrinth is not empty
+                }
+            }
+        }
+        return true; // All elements are zeros, labyrinth is empty
+    }
+
 
 
     private void generateLabyrinth() {

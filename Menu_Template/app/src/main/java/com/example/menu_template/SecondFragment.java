@@ -50,9 +50,11 @@ public class SecondFragment extends Fragment {
         catch (Exception e){
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
         }
-
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
         drawLabyrinth();
+        ESPSteering espSteering = new ESPSteering(requireContext());
+        espSteering.startSensors();
+
     }
 
     private void drawLabyrinth() {
@@ -123,5 +125,6 @@ public class SecondFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+        gameLogic.stopSensors(steeringMethod);
     }
 }

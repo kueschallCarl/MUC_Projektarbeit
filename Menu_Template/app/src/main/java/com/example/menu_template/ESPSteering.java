@@ -16,6 +16,8 @@ import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
 
+import java.util.Arrays;
+
 /**
  * This class parses the ESP32's Accelerometer/Gyro-Value-Strings received through the MPU_TOPIC,
  * so that the GameLogic Class can access that data to calculate game-physics etc.
@@ -40,6 +42,10 @@ public class ESPSteering implements MqttCallbackListener{
 
     public void startSensors() {
         mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
+    }
+
+    public void stopSensors() {
+        mqttManager.unsubscribeFromTopic(Constants.MPU_TOPIC);
 
     }
     /**
@@ -62,6 +68,7 @@ public class ESPSteering implements MqttCallbackListener{
 
     private void parseAndAssignValues(String message) {
         String[] values = message.replaceAll("[()]", "").split(",");
+        Log.d("parsedValuesFromMPUMessage", Arrays.toString(values));
         if (values.length == 6) {
             acc_x = Float.parseFloat(values[0]);
             acc_y = Float.parseFloat(values[1]);

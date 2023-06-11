@@ -76,6 +76,14 @@ public class MqttManager {
         }
     }
 
+    public void unsubscribeFromTopic(String topic) {
+        try {
+            mqttClient.unsubscribe(topic);
+            Log.d("MqttManager", "Unsubscribed to topic: " + topic);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * This method attempts to connect to an MQTT broker
      */

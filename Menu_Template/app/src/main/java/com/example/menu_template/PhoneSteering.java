@@ -1,24 +1,14 @@
 package com.example.menu_template;
-
-import android.app.AlertDialog;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Bundle;
+import android.Manifest;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.EditText;
+import androidx.core.content.ContextCompat;
 
-import com.example.menu_template.MqttManager;
-import com.example.menu_template.MqttCallbackListener;
-import com.example.menu_template.Constants;
 
 /**
  * This class utilizes the sensors inside the Smartphone to parse accelerometer/gyro values, so that the GameLogic class can
@@ -32,14 +22,31 @@ public class PhoneSteering implements SensorEventListener {
     private float gyro_x, gyro_y, gyro_z;
 
     public PhoneSteering(Context context) {
+
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
+            Log.d("Sensor_Listener","Permissions granted");
+        } else {
+            Log.d("Sensor_Listener","Permissions not granted");
+
+        }
+
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
     }
 
     public void startSensors() {
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        if (accelerometer != null) {
+            Log.d("Sensor_Listener","Accelerometer listener activated");
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        }
+        if (gyroscope != null) {
+            Log.d("Sensors_Listener","Gyro listener activated");
+            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
+        }
     }
 
     public void stopSensors() {
