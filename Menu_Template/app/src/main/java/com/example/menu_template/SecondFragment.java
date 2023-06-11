@@ -25,7 +25,7 @@ public class SecondFragment extends Fragment {
 
     private FragmentSecondBinding binding;
     private GameLogic gameLogic;
-    private String SteeringMethod;
+    private String steeringMethod;
     private SettingsDatabase settingsDatabase;
 
 
@@ -41,24 +41,12 @@ public class SecondFragment extends Fragment {
         SettingsFragment settingsFragment = new SettingsFragment();
         try {
             this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
-            String steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
+            steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
             Log.d("SteeringMethod", "Method: " + steeringMethod);
         }
         catch (Exception e){
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
         }
-
-
-
-        try {
-            this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
-            String broker_ip = settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP);
-            Log.d("MqttManager", "BrokerIP: " + broker_ip);
-        }
-        catch (Exception e){
-            Log.d("MqttManager", "Issue calling the getSetting in SecondFragment: "+ e);
-        }
-
 
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
         int[][] labyrinth = gameLogic.getLabyrinth();
