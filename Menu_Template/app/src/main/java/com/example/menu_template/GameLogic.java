@@ -19,12 +19,12 @@ public class GameLogic implements MqttCallbackListener {
     private int[][] labyrinth;
     private final int size = 28;
 
-    public GameLogic(Context context) {
+    public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
 
         this.mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
-        mqttManager.connect();
+        mqttManager.connect(settingsDatabase);
 
         this.espSteering = new ESPSteering(context);
         this.phoneSteering = new PhoneSteering(context);

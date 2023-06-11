@@ -14,6 +14,7 @@ public class SettingsDatabase extends SQLiteOpenHelper {
     private static final String TABLE_NAME = "settings";
     private static final String COLUMN_ID = "id";
     public static final String COLUMN_STEERING_METHOD = "steering_method";
+    public static final String COLUMN_BROKER_IP = "broker_ip";
 
     private static SettingsDatabase instance = null;
     private Context mContext;
@@ -34,19 +35,23 @@ public class SettingsDatabase extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         String createTableQuery = "CREATE TABLE " + TABLE_NAME + " (" +
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_STEERING_METHOD + " TEXT)";
+                COLUMN_STEERING_METHOD + " TEXT, " +
+                COLUMN_BROKER_IP + " TEXT)";
         db.execSQL(createTableQuery);
     }
+
+
+
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Handle database upgrades if needed
     }
 
-    public void saveSetting(String setting) {
+    public void saveSetting(String setting, String column) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_STEERING_METHOD, setting);
+        values.put(column, setting);
         db.insert(TABLE_NAME, null, values);
         db.close();
     }
@@ -69,6 +74,7 @@ public class SettingsDatabase extends SQLiteOpenHelper {
         db.close();
         return setting;
     }
+
 
     public Context getContext() {
         return mContext;

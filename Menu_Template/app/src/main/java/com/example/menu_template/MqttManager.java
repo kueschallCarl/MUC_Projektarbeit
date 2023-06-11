@@ -79,8 +79,10 @@ public class MqttManager {
     /**
      * This method attempts to connect to an MQTT broker
      */
-    public void connect() {
+    public void connect(SettingsDatabase settingsDatabase) {
         try {
+
+            MQTT_BROKER_IP = settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP);
             mqttClient = new MqttClient(MQTT_BROKER_METHOD + "://" + MQTT_BROKER_IP + ":" + MQTT_BROKER_PORT, MQTT_CLIENT_ID, new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
 

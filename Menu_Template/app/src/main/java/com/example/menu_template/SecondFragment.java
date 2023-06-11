@@ -26,6 +26,7 @@ public class SecondFragment extends Fragment {
     private FragmentSecondBinding binding;
     private GameLogic gameLogic;
     private String SteeringMethod;
+    private SettingsDatabase settingsDatabase;
 
 
     @Override
@@ -39,21 +40,7 @@ public class SecondFragment extends Fragment {
 
         SettingsFragment settingsFragment = new SettingsFragment();
         try {
-            Log.d("SteeringMethod", "Test: " + settingsFragment.test);
-        }
-        catch (Exception e){
-            Log.d("SteeringMethod", "Issue accessing test attribute of instance: "+ e);
-        }
-        try {
-            settingsFragment.test = 15;
-            Log.d("SteeringMethod", "Test: " + settingsFragment.test);
-        }
-        catch (Exception e){
-            Log.d("SteeringMethod", "Issue updating test attribute of instance: "+ e);
-        }
-
-        try {
-            SettingsDatabase settingsDatabase = SettingsDatabase.getInstance(requireContext());
+            this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
             String steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
             Log.d("SteeringMethod", "Method: " + steeringMethod);
         }
@@ -61,7 +48,19 @@ public class SecondFragment extends Fragment {
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
         }
 
-        gameLogic = new GameLogic(requireContext());
+
+
+        try {
+            this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
+            String broker_ip = settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP);
+            Log.d("MqttManager", "BrokerIP: " + broker_ip);
+        }
+        catch (Exception e){
+            Log.d("MqttManager", "Issue calling the getSetting in SecondFragment: "+ e);
+        }
+
+
+        gameLogic = new GameLogic(requireContext(), settingsDatabase);
         int[][] labyrinth = gameLogic.getLabyrinth();
 
         // Create a new bitmap to draw the labyrinth

@@ -25,14 +25,14 @@ import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
 import com.example.menu_template.databinding.FragmentSettingsBinding;
 
+import java.util.Set;
+
 
 public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
     private MqttManager mqttManager;
     private String SteeringMethod;
     private SettingsDatabase settingsDatabase;
-
-    public int test =10;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentSettingsBinding.inflate(inflater, container, false);
@@ -52,6 +52,7 @@ public class SettingsFragment extends Fragment {
             public void onClick(View v) {
                 String brokerIP = binding.brokerAddressTextField.getText().toString();
                 mqttManager.MQTT_BROKER_IP = brokerIP;
+                settingsDatabase.saveSetting(brokerIP, SettingsDatabase.COLUMN_BROKER_IP);
                 Log.d("MqttManager", "brokerIP: " + mqttManager.MQTT_BROKER_IP);
             }
         });
@@ -119,7 +120,7 @@ public class SettingsFragment extends Fragment {
                 }
 
                 // Save the selected steering method to the database
-                settingsDatabase.saveSetting(SteeringMethod);
+                settingsDatabase.saveSetting(SteeringMethod, SettingsDatabase.COLUMN_STEERING_METHOD);
                 Log.d("Database", "Steering method saved: " + SteeringMethod);
 
                 // Do something with the selected steering method
