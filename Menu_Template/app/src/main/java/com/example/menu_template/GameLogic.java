@@ -116,18 +116,18 @@ public class GameLogic implements MqttCallbackListener {
         if (Math.abs(gyroX) > Math.abs(gyroY)) {
             if (gyroX > threshold) {
                 // Player is tilting the phone or ESP to the right
-                lastValidDirection = 1;
+                lastValidDirection = 0;
             } else if (gyroX < -threshold) {
                 // Player is tilting the phone or ESP to the left
-                lastValidDirection = 0;
+                lastValidDirection = 1;
             }
         } else {
             if (gyroY > threshold) {
                 // Player is tilting the phone or ESP forward
-                lastValidDirection = 2;
+                lastValidDirection = 3;
             } else if (gyroY < -threshold) {
                 // Player is tilting the phone or ESP backward
-                lastValidDirection = 3;
+                lastValidDirection = 2;
             }
         }
 
