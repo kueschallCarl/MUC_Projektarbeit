@@ -2,6 +2,7 @@ package com.example.menu_template;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -17,11 +18,14 @@ public class GameLogic implements MqttCallbackListener {
     public final ESPSteering espSteering;
     public final PhoneSteering phoneSteering;
     public int[][] labyrinth;
-    private final int size = 28;
+    private final int size = 10;
+    private Handler handler; // Handler to run code on the main thread
+
     private int lastValidDirection = -1; // Store the last valid direction
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
+        handler = new Handler(); // Initialize the handler
         this.mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
         mqttManager.connect(settingsDatabase);
@@ -51,6 +55,7 @@ public class GameLogic implements MqttCallbackListener {
         labyrinth = movePlayer(labyrinth, playerDirection);
 
         if (isLabyrinthEmpty(labyrinth)) {
+
             showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
             return true;
         }
@@ -229,9 +234,7 @@ public class GameLogic implements MqttCallbackListener {
             return labyrinth;
         }
 
-        // Move the player to the new position
-        labyrinth[playerX][playerY] = 0; // Set the current position to 0 (empty space)
-        labyrinth[newPlayerX][newPlayerY] = 2; // Set the new position to 2 (player)
+
 
         // Check if the new position is the winning position (value 3)
         if (labyrinth[newPlayerX][newPlayerY] == 3) {
@@ -242,6 +245,9 @@ public class GameLogic implements MqttCallbackListener {
             }
             return labyrinth;
         }
+        // Move the player to the new position
+        labyrinth[playerX][playerY] = 0; // Set the current position to 0 (empty space)
+        labyrinth[newPlayerX][newPlayerY] = 2; // Set the new position to 2 (player)
 
         return labyrinth;
     }
@@ -393,11 +399,16 @@ public class GameLogic implements MqttCallbackListener {
     }
 
     private void showAlert(String title, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("OK", null)
-                .show();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton("OK", null)
+                        .show();
+            }
+        });
     }
 
     public ESPSteering getEspSteering() {
