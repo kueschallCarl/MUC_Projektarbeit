@@ -67,7 +67,7 @@ public class SecondFragment extends Fragment {
                 drawLabyrinth(gameLogic.labyrinth);
             }
             try {
-                Thread.sleep(100); // Add a 100ms delay
+                Thread.sleep(300); // Add a 100ms delay
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

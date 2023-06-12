@@ -105,16 +105,16 @@ public class GameLogic implements MqttCallbackListener {
         float gyroZ = sensorData[5];
 
         // Adjust the thresholds based on your specific requirements
-        float threshold = 0.3f;
+        float threshold = 0.6f;
 
         // Check the absolute values of gyroX and gyroY to determine the direction
         if (Math.abs(gyroX) > Math.abs(gyroY)) {
             if (gyroX > threshold) {
                 // Player is tilting the phone or ESP to the right
-                lastValidDirection = 0;
+                lastValidDirection = 1;
             } else if (gyroX < -threshold) {
                 // Player is tilting the phone or ESP to the left
-                lastValidDirection = 1;
+                lastValidDirection = 0;
             }
         } else {
             if (gyroY > threshold) {
