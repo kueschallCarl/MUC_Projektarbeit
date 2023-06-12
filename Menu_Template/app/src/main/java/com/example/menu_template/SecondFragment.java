@@ -31,9 +31,10 @@ public class SecondFragment extends Fragment {
     private SettingsDatabase settingsDatabase;
     private boolean win_condition = false;
 
-    private ImageView labyrinthImageView; // Declare the ImageView as a class-level variable
-    private View fragmentView; // Declare the view as a class-level variable
+    private ImageView labyrinthImageView;
+    private View fragmentView;
 
+    private Thread gameThread;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,7 +44,7 @@ public class SecondFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        fragmentView = view; // Assign the view to the class-level variable
+        fragmentView = view;
 
         SettingsFragment settingsFragment = new SettingsFragment();
         try {
@@ -58,35 +59,32 @@ public class SecondFragment extends Fragment {
     }
 
     public void startGameLoop(String steeringMethod) {
-        new Thread(() -> {
+        gameThread = new Thread(() -> {
             while (!Thread.interrupted()) {
                 win_condition = gameLogic.gameStep(steeringMethod);
+                drawLabyrinth(gameLogic.labyrinth);
                 if (win_condition) {
                     break;
                 }
-                drawLabyrinth(gameLogic.labyrinth);
+                try {
+                    Thread.sleep(300); // Add a 100ms delay
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
+                }
             }
-            try {
-                Thread.sleep(300); // Add a 100ms delay
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
+        });
+        gameThread.start();
     }
 
-
     public void drawLabyrinth(int[][] labyrinth) {
-        // Create a new bitmap to draw the labyrinth
         int cellSize = 50;
         int width = labyrinth.length * cellSize;
         int height = labyrinth[0].length * cellSize;
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-
-        // Clear the canvas
         canvas.drawColor(Color.WHITE);
 
-        // Create the paint objects for different cell colors
         Paint emptyCellPaint = new Paint();
         emptyCellPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEmptyCell));
 
@@ -99,7 +97,6 @@ public class SecondFragment extends Fragment {
         Paint endPaint = new Paint();
         endPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEnd));
 
-        // Draw the labyrinth on the canvas
         for (int i = 0; i < labyrinth.length; i++) {
             for (int j = 0; j < labyrinth[i].length; j++) {
                 int cellValue = labyrinth[i][j];
@@ -125,13 +122,9 @@ public class SecondFragment extends Fragment {
             }
         }
 
-        // Update the labyrinthImageView on the main thread
-        requireActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
-                labyrinthImageView.setImageBitmap(bitmap);
-            }
+        requireActivity().runOnUiThread(() -> {
+            labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
+            labyrinthImageView.setImageBitmap(bitmap);
         });
     }
 
@@ -145,9 +138,20 @@ public class SecondFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        win_condition = true;
         super.onDestroyView();
+        win_condition = true;
         binding = null;
+
+        if (gameThread != null && gameThread.isAlive()) {
+            gameThread.interrupt();
+            try {
+                gameThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         gameLogic.stopSensors(steeringMethod);
     }
 }
+
