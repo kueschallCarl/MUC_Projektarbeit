@@ -16,10 +16,9 @@ public class GameLogic implements MqttCallbackListener {
     private Context context;
     public final ESPSteering espSteering;
     public final PhoneSteering phoneSteering;
-    private int[][] labyrinth;
+    public int[][] labyrinth;
     private final int size = 28;
     private int lastValidDirection = -1; // Store the last valid direction
-
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
@@ -42,31 +41,32 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-    public void startGameLoop(String steeringType) {
+    public boolean gameStep(String steeringType) {
         Log.d("gameLoop", "Game Loop started");
         startSensors(steeringType);
         Log.d("gameLoop", "Sensors started");
 
-        new Thread(() -> {
-            while (!Thread.interrupted()) {
-                int playerDirection = getPlayerDirection(steeringType);
-                Log.d("playerDirection", String.valueOf(playerDirection));
-                labyrinth = movePlayer(labyrinth, playerDirection);
+        int playerDirection = getPlayerDirection(steeringType);
+        Log.d("playerDirection", String.valueOf(playerDirection));
+        labyrinth = movePlayer(labyrinth, playerDirection);
 
-                if (isLabyrinthEmpty(labyrinth)) {
-                    showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
-                    break;
-                }
+        if (isLabyrinthEmpty(labyrinth)) {
+            showAlert("YOU WIN!", "You have successfully completed the labyrinth!");
+            return true;
+        }
 
-                try {
-                    Thread.sleep(100); // Add a 100ms delay
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    break;
-                }
+        else{
+            try {
+                Thread.sleep(100); // Add a 100ms delay
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+
             }
-        }).start();
+            return false;
+        }
+
     }
+
 
 
     private float[] getValuesFromESPSensor() {

@@ -11,15 +11,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RadioGroup;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.example.menu_template.Constants;
 import com.example.menu_template.GameLogic;
+import com.example.menu_template.SettingsDatabase;
+import com.example.menu_template.SettingsFragment;
 import com.example.menu_template.databinding.FragmentSecondBinding;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SecondFragment extends Fragment {
 
@@ -27,6 +29,8 @@ public class SecondFragment extends Fragment {
     private GameLogic gameLogic;
     private String steeringMethod;
     private SettingsDatabase settingsDatabase;
+    private boolean win_condition = false;
+
     private ImageView labyrinthImageView; // Declare the ImageView as a class-level variable
     private View fragmentView; // Declare the view as a class-level variable
 
@@ -46,19 +50,32 @@ public class SecondFragment extends Fragment {
             this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
             steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
             Log.d("SteeringMethod", "Method: " + steeringMethod);
-        }
-        catch (Exception e){
-            Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): "+ e);
+        } catch (Exception e) {
+            Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): " + e);
         }
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
-        gameLogic.startGameLoop(steeringMethod);
-        drawLabyrinth();
-
+        startGameLoop(steeringMethod);
     }
 
-    private void drawLabyrinth() {
-        int[][] labyrinth = gameLogic.getLabyrinth();
+    public void startGameLoop(String steeringMethod) {
+        new Thread(() -> {
+            while (!Thread.interrupted()) {
+                win_condition = gameLogic.gameStep(steeringMethod);
+                if (win_condition) {
+                    break;
+                }
+                drawLabyrinth(gameLogic.labyrinth);
+            }
+            try {
+                Thread.sleep(100); // Add a 100ms delay
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
 
+
+    public void drawLabyrinth(int[][] labyrinth) {
         // Create a new bitmap to draw the labyrinth
         int cellSize = 50;
         int width = labyrinth.length * cellSize;
@@ -108,8 +125,14 @@ public class SecondFragment extends Fragment {
             }
         }
 
-        labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
-        labyrinthImageView.setImageBitmap(bitmap);
+        // Update the labyrinthImageView on the main thread
+        requireActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
+                labyrinthImageView.setImageBitmap(bitmap);
+            }
+        });
     }
 
     private void showAlert(String title, String message) {
@@ -122,6 +145,7 @@ public class SecondFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        win_condition = true;
         super.onDestroyView();
         binding = null;
         gameLogic.stopSensors(steeringMethod);
