@@ -41,7 +41,32 @@ public class SettingsFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        //Fill in Settings with stored Settings in SQLite
+        RadioGroup radioGroup = binding.radioBtnGroupSteeringMethod;
+        EditText sizeSettingEditText = binding.sizeSetting;
+        EditText brokerIPEditText = binding.brokerAddressTextField;
+
         this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
+
+        String radioButtonSelection = settingsDatabase.getSetting(SettingsDatabase.COLUMN_STEERING_METHOD);
+        sizeSettingEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
+        brokerIPEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP));
+
+        int radioButtonId = -1;
+        if (radioButtonSelection.equals("ESP32")) {
+            radioButtonId = R.id.radio_btn_esp32_steering;
+        } else if (radioButtonSelection.equals("Phone")) {
+            radioButtonId = R.id.radio_btn_phone_steering;
+        }
+        if (radioButtonId != -1) {
+            Log.d("radioButton", "Radio button: "+radioButtonId+"checked");
+            radioGroup.check(radioButtonId);
+        }
+
+
+
+
 
         // Get the singleton instance of MqttManager
         mqttManager = MqttManager.getInstance();
@@ -51,8 +76,10 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 String brokerIP = binding.brokerAddressTextField.getText().toString();
+                String labyrinth_size = binding.sizeSetting.getText().toString();
                 mqttManager.MQTT_BROKER_IP = brokerIP;
                 settingsDatabase.updateLastSetting(brokerIP, SettingsDatabase.COLUMN_BROKER_IP);
+                settingsDatabase.updateLastSetting(labyrinth_size, SettingsDatabase.COLUMN_LABYRINTH_SIZE);
                 Log.d("MqttManager", "brokerIP: " + mqttManager.MQTT_BROKER_IP);
             }
         });

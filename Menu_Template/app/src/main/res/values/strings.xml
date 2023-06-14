@@ -12,11 +12,12 @@
     <string name="steering_method_label">Steering Method:</string>
 
     <string name="radio_btn_esp32_label">External: Esp32:</string>
+    <string name="size_setting_label">Labyrinth Size</string>
     <string name="radio_btn_phone_label">Internal: Smartphone</string>
     <string name="button_save_settings_label">Save</string>
 
 
-
+    <string name="size_setting_default">10</string>
     <string name="broker_address_text_field">192.168.0.89</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

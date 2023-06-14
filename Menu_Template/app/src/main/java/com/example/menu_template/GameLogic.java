@@ -15,23 +15,28 @@ public class GameLogic implements MqttCallbackListener {
 
     public MqttManager mqttManager;
     private Context context;
+    private SettingsDatabase settingsDatabase;
     public final ESPSteering espSteering;
     public final PhoneSteering phoneSteering;
     public int[][] labyrinth;
-    private final int size = 10;
+    private int size = 10;
     private Handler handler; // Handler to run code on the main thread
 
     private int lastValidDirection = -1; // Store the last valid direction
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
-        handler = new Handler(); // Initialize the handler
+        handler = new Handler();
         this.mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
         mqttManager.connect(settingsDatabase);
 
         this.espSteering = new ESPSteering(context);
         this.phoneSteering = new PhoneSteering(context);
+        this.settingsDatabase = SettingsDatabase.getInstance(context);
+
+        this.size = Integer.parseInt(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
+
 
         mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
         mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
