@@ -67,7 +67,7 @@ public class SecondFragment extends Fragment {
                     break;
                 }
                 try {
-                    Thread.sleep(100); // Add a 100ms delay
+                    Thread.sleep(40); // Add a 100ms delay
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     break;

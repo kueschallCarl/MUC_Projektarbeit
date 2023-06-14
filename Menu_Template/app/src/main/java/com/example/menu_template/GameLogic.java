@@ -84,12 +84,6 @@ public class GameLogic implements MqttCallbackListener {
         }
 
         else{
-            try {
-                Thread.sleep(100); // Add a 100ms delay
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-
-            }
             return false;
         }
 
