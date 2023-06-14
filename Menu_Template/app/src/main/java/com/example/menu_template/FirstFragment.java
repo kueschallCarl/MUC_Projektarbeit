@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -81,8 +82,14 @@ public class FirstFragment extends Fragment {
         if (id == R.id.action_settings) {
             // Get to the Settings Fragment
             NavController navController = NavHostFragment.findNavController(this);
-            navController.navigate(R.id.action_FirstFragment_to_SettingsFragment);
-            return true;
+            navController.navigate(
+                    R.id.action_FirstFragment_to_SettingsFragment,
+                    null,
+                    new NavOptions.Builder()
+                            .setLaunchSingleTop(true)
+                            .setPopUpTo(R.id.FirstFragment, false)
+                            .build()
+            );            return true;
         }
 
         return super.onOptionsItemSelected(item);

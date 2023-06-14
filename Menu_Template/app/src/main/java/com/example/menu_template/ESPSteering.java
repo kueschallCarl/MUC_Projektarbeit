@@ -1,6 +1,7 @@
 package com.example.menu_template;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,6 +15,8 @@ import android.widget.EditText;
 import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
+
+import java.util.Arrays;
 
 /**
  * This class parses the ESP32's Accelerometer/Gyro-Value-Strings received through the MPU_TOPIC,
@@ -29,14 +32,23 @@ public class ESPSteering implements MqttCallbackListener{
     private float gyro_x;
     private float gyro_y;
     private float gyro_z;
+
     public ESPSteering(Context context) {
         this.context = context;
         mqttManager = MqttManager.getInstance();
         mqttManager.setCallbackListener(this);
 
+    }
+
+
+    public void startSensors() {
         mqttManager.subscribeToTopic(Constants.MPU_TOPIC);
     }
 
+    public void stopSensors() {
+        mqttManager.unsubscribeFromTopic(Constants.MPU_TOPIC);
+
+    }
     /**
      * This method implements the MqttCallbackListener interface for onMessageReceived()
      * @param topic the MQTT topic
@@ -48,22 +60,31 @@ public class ESPSteering implements MqttCallbackListener{
             parseAndAssignValues(message);
             // Handle received message
             String payload = new String(message);
+
             // Process the payload as per your game logic
             Log.d(Constants.MPU_TOPIC, payload);
         }
-
-
     }
+
 
     private void parseAndAssignValues(String message) {
         String[] values = message.replaceAll("[()]", "").split(",");
         if (values.length == 6) {
-            acc_x = Float.parseFloat(values[0]);
-            acc_y = Float.parseFloat(values[1]);
-            acc_z = Float.parseFloat(values[2]);
-            gyro_x = Float.parseFloat(values[3]);
-            gyro_y = Float.parseFloat(values[4]);
-            gyro_z = Float.parseFloat(values[5]);
+            try {
+                acc_x = Float.parseFloat(values[0]);
+                acc_y = Float.parseFloat(values[1]);
+                acc_z = Float.parseFloat(values[2]);
+                gyro_x = Float.parseFloat(values[3]);
+                gyro_y = Float.parseFloat(values[4]);
+                gyro_z = Float.parseFloat(values[5]);
+
+                Log.d("ParsedValues", "acc_x: " + acc_x + ", acc_y: " + acc_y + ", acc_z: " + acc_z
+                        + ", gyro_x: " + gyro_x + ", gyro_y: " + gyro_y + ", gyro_z: " + gyro_z);
+            } catch (NumberFormatException e) {
+                Log.e("ParseError", "Error parsing values: " + e.getMessage());
+            }
+        } else {
+            Log.d("NumberOfValues", "Invalid number of values: " + values.length);
         }
     }
 

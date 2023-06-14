@@ -11,6 +11,13 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class MqttManager {
     private static MqttManager instance;
 
+    private float acc_x;
+    private float acc_y;
+    private float acc_z;
+    private float gyro_x;
+    private float gyro_y;
+    private float gyro_z;
+
     // tcp://192.168.0.89:1883
     public String MQTT_BROKER_IP = "198.162.0.89";
     public String MQTT_BROKER_PORT = "1883";
@@ -76,11 +83,21 @@ public class MqttManager {
         }
     }
 
+    public void unsubscribeFromTopic(String topic) {
+        try {
+            mqttClient.unsubscribe(topic);
+            Log.d("MqttManager", "Unsubscribed to topic: " + topic);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * This method attempts to connect to an MQTT broker
      */
-    public void connect() {
+    public void connect(SettingsDatabase settingsDatabase) {
         try {
+
+            MQTT_BROKER_IP = settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP);
             mqttClient = new MqttClient(MQTT_BROKER_METHOD + "://" + MQTT_BROKER_IP + ":" + MQTT_BROKER_PORT, MQTT_CLIENT_ID, new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
 
@@ -106,10 +123,11 @@ public class MqttManager {
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
                     // Handle received message
                     String payload = new String(message.getPayload());
-                    // Process the payload as per your game logic
-                    Log.d("mpu_message", payload);
-
+                    if (callbackListener != null) {
+                        callbackListener.onMessageReceived(topic, payload);
+                    }
                 }
+
 
                 /**
                  * Handles delivery status information
@@ -158,4 +176,6 @@ public class MqttManager {
             e.printStackTrace();
         }
     }
+
+
 }

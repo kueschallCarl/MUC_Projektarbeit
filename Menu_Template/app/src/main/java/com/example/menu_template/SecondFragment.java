@@ -1,114 +1,157 @@
 package com.example.menu_template;
 
 import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
 
+import com.example.menu_template.GameLogic;
+import com.example.menu_template.SettingsDatabase;
+import com.example.menu_template.SettingsFragment;
 import com.example.menu_template.databinding.FragmentSecondBinding;
-import org.eclipse.paho.client.mqttv3.*;
-import com.example.menu_template.MqttManager;
-import com.example.menu_template.MqttCallbackListener;
-import com.example.menu_template.Constants.*;
-import com.google.android.material.snackbar.Snackbar;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * This fragment hosts the codebase for the visualization of the labyrinth, and with that the entire game-loop
- * This fragment implements the MqttCallbackListener interface to receive MQTT message callbacks
- */
-public class SecondFragment extends Fragment{
+public class SecondFragment extends Fragment {
 
     private FragmentSecondBinding binding;
-    private MqttManager mqttManager;
-
     private GameLogic gameLogic;
+    private String steeringMethod;
+    private SettingsDatabase settingsDatabase;
+    private boolean win_condition = false;
 
-    /**
-     * This method overrides the implementation of creating the View
-     * In this case, an MQTT connection is established and utilized and a binding object is created through inflation
-     * @param inflater The LayoutInflater object that can be used to inflate
-     * any views in the fragment,
-     * ChatGPT explanation of "inflating":
-         * "Inflating" refers to the process of creating a View object from a layout XML file.
-         * In the context of Android development, when we say a layout is inflated,
-         * it means that the XML layout file is parsed and converted into a hierarchy of View objects that represent the user interface components specified in the XML.
-     * @param container If non-null, this is the parent view that the fragment's
-     * UI should be attached to.  The fragment should not add the view itself,
-     * but this can be used to generate the LayoutParams of the view.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     *
-     * @return The root view of the fragment.
-     */
+    private ImageView labyrinthImageView;
+    private View fragmentView;
+
+    private Thread gameThread;
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-
-        this.gameLogic = new GameLogic(requireContext());
-
         binding = FragmentSecondBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
-
-    /**
-     * This method implements what should happen once the View has been created
-     * @param view The View returned by {@link #onCreateView(LayoutInflater, ViewGroup, Bundle)}.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     */
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        fragmentView = view;
 
+        SettingsFragment settingsFragment = new SettingsFragment();
+        try {
+            this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
+            steeringMethod = settingsFragment.getSteeringMethod(settingsDatabase);
+            Log.d("SteeringMethod", "Method: " + steeringMethod);
+        } catch (Exception e) {
+            Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): " + e);
+        }
+        gameLogic = new GameLogic(requireContext(), settingsDatabase);
+        startGameLoop(steeringMethod);
+    }
 
-        binding.buttonSecond.setOnClickListener(new View.OnClickListener() {
-
-            /**
-             * This method overrides what should happen, when the specified Element is clicked
-             * @param view The view that was clicked.
-             */
-            @Override
-            public void onClick(View view) {
-                NavHostFragment.findNavController(SecondFragment.this)
-                        .navigate(R.id.action_SecondFragment_to_FirstFragment);
+    public void startGameLoop(String steeringMethod) {
+        gameThread = new Thread(() -> {
+            while (!Thread.interrupted()) {
+                win_condition = gameLogic.gameStep(steeringMethod);
+                drawLabyrinth(gameLogic.labyrinth);
+                if (win_condition) {
+                    break;
+                }
+                try {
+                    Thread.sleep(300); // Add a 100ms delay
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
+                }
             }
+        });
+        gameThread.start();
+    }
+
+    public void drawLabyrinth(int[][] labyrinth) {
+        int cellSize = 50;
+        int width = labyrinth.length * cellSize;
+        int height = labyrinth[0].length * cellSize;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.WHITE);
+
+        Paint emptyCellPaint = new Paint();
+        emptyCellPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEmptyCell));
+
+        Paint wallPaint = new Paint();
+        wallPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorWall));
+
+        Paint startPaint = new Paint();
+        startPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorStart));
+
+        Paint endPaint = new Paint();
+        endPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorEnd));
+
+        for (int i = 0; i < labyrinth.length; i++) {
+            for (int j = 0; j < labyrinth[i].length; j++) {
+                int cellValue = labyrinth[i][j];
+                float left = i * cellSize;
+                float top = j * cellSize;
+                float right = left + cellSize;
+                float bottom = top + cellSize;
+
+                switch (cellValue) {
+                    case 0:
+                        canvas.drawRect(left, top, right, bottom, emptyCellPaint);
+                        break;
+                    case 1:
+                        canvas.drawRect(left, top, right, bottom, wallPaint);
+                        break;
+                    case 2:
+                        canvas.drawRect(left, top, right, bottom, startPaint);
+                        break;
+                    case 3:
+                        canvas.drawRect(left, top, right, bottom, endPaint);
+                        break;
+                }
+            }
+        }
+
+        requireActivity().runOnUiThread(() -> {
+            labyrinthImageView = fragmentView.findViewById(R.id.labyrinthImageView);
+            labyrinthImageView.setImageBitmap(bitmap);
         });
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_settings) {
-            // Get to the Settings Fragment
-            NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-            navController.navigate(R.id.action_SecondFragment_to_SettingsFragment);
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+    private void showAlert(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
-
-    /**
-     * This method overrides what should happen, whenever this View is destroyed
-     */
     @Override
     public void onDestroyView() {
-        //discard this later
-        gameLogic.mqttManager.publishToTopic("1", Constants.FINISHED_TOPIC);
         super.onDestroyView();
+        win_condition = true;
         binding = null;
-        gameLogic.mqttManager.disconnect();
-    }
 
+        if (gameThread != null && gameThread.isAlive()) {
+            gameThread.interrupt();
+            try {
+                gameThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        gameLogic.stopSensors(steeringMethod);
+    }
 }
+
