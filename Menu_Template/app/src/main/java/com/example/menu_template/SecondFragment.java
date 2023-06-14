@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -54,16 +55,26 @@ public class SecondFragment extends Fragment {
         } catch (Exception e) {
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): " + e);
         }
+
+        test_delete_later test_delete_later = new test_delete_later(requireContext());
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
         startGameLoop(steeringMethod);
     }
 
     public void startGameLoop(String steeringMethod) {
+        gameLogic.setGameRunning(true);
+        gameLogic.startSensors(steeringMethod);
         gameThread = new Thread(() -> {
             while (!Thread.interrupted()) {
+                float temperature = gameLogic.getTemperature();
+                int play_time = gameLogic.getPlay_time();
+
+                updateTemperatureAndPlayTime(temperature, play_time);
+
                 win_condition = gameLogic.gameStep(steeringMethod);
                 drawLabyrinth(gameLogic.labyrinth);
                 if (win_condition) {
+                    gameLogic.setGameRunning(false);
                     break;
                 }
                 try {
@@ -76,6 +87,20 @@ public class SecondFragment extends Fragment {
         });
         gameThread.start();
     }
+
+
+    private void updateTemperatureAndPlayTime(float temperature, int play_time) {
+        requireActivity().runOnUiThread(() -> {
+            EditText timeTextField = binding.timeTextField;
+            EditText temperatureTextField = binding.temperatureTextField;
+
+            temperatureTextField.setText(String.valueOf(temperature));
+            timeTextField.setText(String.valueOf(play_time));
+        });
+
+    }
+
+
 
     public void drawLabyrinth(int[][] labyrinth) {
         int cellSize = 50;

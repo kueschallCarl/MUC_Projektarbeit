@@ -12,9 +12,11 @@
     <string name="steering_method_label">Steering Method:</string>
 
     <string name="radio_btn_esp32_label">External: Esp32:</string>
-    <string name="size_setting_label">Labyrinth Size</string>
+    <string name="size_setting_label">Labyrinth Size:</string>
     <string name="radio_btn_phone_label">Internal: Smartphone</string>
     <string name="button_save_settings_label">Save</string>
+    <string name="temperature_label">Temperature:</string>
+    <string name="timer_label">Time:</string>
 
 
     <string name="size_setting_default">10</string>
