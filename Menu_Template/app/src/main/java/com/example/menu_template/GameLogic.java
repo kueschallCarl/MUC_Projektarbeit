@@ -67,7 +67,21 @@ public class GameLogic implements MqttCallbackListener {
         }
     }
 
-
+    /**
+     * This method implements the MqttCallbackListener interface for onMessageReceived()
+     *
+     * @param topic   the MQTT topic
+     * @param message the current message received for that MQTT topic
+     */
+    @Override
+    public void onMessageReceived(String topic, String message) {
+        if (topic.equals(Constants.TEMP_TOPIC)) {
+            // Handle received message
+            String payload = new String(message);
+            // Process the payload as per your game logic
+            Log.d(Constants.TEMP_TOPIC, payload);
+        }
+    }
     public boolean gameStep(String steeringType) {
         Log.d("gameLoop", "Game Loop started");
         startSensors(steeringType);
@@ -480,21 +494,7 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-    /**
-     * This method implements the MqttCallbackListener interface for onMessageReceived()
-     *
-     * @param topic   the MQTT topic
-     * @param message the current message received for that MQTT topic
-     */
-    @Override
-    public void onMessageReceived(String topic, String message) {
-        if (topic.equals(Constants.TEMP_TOPIC)) {
-            // Handle received message
-            String payload = new String(message);
-            // Process the payload as per your game logic
-            Log.d(Constants.TEMP_TOPIC, payload);
-        }
-    }
+
 
     @Override
     public void onConnectionLost() {

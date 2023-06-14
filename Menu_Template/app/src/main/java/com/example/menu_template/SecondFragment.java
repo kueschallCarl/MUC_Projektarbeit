@@ -55,26 +55,24 @@ public class SecondFragment extends Fragment {
         } catch (Exception e) {
             Log.d("SteeringMethod", "Issue calling the getSteeringMethod(): " + e);
         }
-
-        test_delete_later test_delete_later = new test_delete_later(requireContext());
         gameLogic = new GameLogic(requireContext(), settingsDatabase);
         startGameLoop(steeringMethod);
     }
 
     public void startGameLoop(String steeringMethod) {
-        gameLogic.setGameRunning(true);
+        //gameLogic.setGameRunning(true);
         gameLogic.startSensors(steeringMethod);
         gameThread = new Thread(() -> {
             while (!Thread.interrupted()) {
-                float temperature = gameLogic.getTemperature();
-                int play_time = gameLogic.getPlay_time();
+                //float temperature = gameLogic.getTemperature();
+                //int play_time = gameLogic.getPlay_time();
 
-                updateTemperatureAndPlayTime(temperature, play_time);
+                //updateTemperatureAndPlayTime(temperature, play_time);
 
                 win_condition = gameLogic.gameStep(steeringMethod);
                 drawLabyrinth(gameLogic.labyrinth);
                 if (win_condition) {
-                    gameLogic.setGameRunning(false);
+                    //gameLogic.setGameRunning(false);
                     break;
                 }
                 try {
