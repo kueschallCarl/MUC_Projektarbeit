@@ -286,6 +286,21 @@ public class GameLogic implements MqttCallbackListener {
             }
         }
 
+        // Check if the new position is in the vicinity of the finish (value 3)
+        int finishX = -1;
+        int finishY = -1;
+
+        // Find the position of the finish (value 3) in the labyrinth
+        for (int i = 0; i < labyrinth.length; i++) {
+            for (int j = 0; j < labyrinth[i].length; j++) {
+                if (labyrinth[i][j] == 3) {
+                    finishX = i;
+                    finishY = j;
+                    break;
+                }
+            }
+        }
+
         if (playerX == -1 || playerY == -1) {
             // Player not found in the labyrinth
             Log.d("movePlayer", "Player not found in the labyrinth");
@@ -329,17 +344,21 @@ public class GameLogic implements MqttCallbackListener {
             return labyrinth;
         }
 
-
+        // Calculate the difference between the player's position and the finish's position
+        int deltaX = Math.abs(newPlayerX - finishX);
+        int deltaY = Math.abs(newPlayerY - finishY);
 
         // Check if the new position is the winning position (value 3)
-        if (labyrinth[newPlayerX][newPlayerY] == 3) {
-            Log.d("movePlayer", "Player won the game!");
+        if ((deltaX == 0 && deltaY == 1) || (deltaX == 1 && deltaY == 0)) {
+            // Player is in the vicinity of the finish
+            Log.d("movePlayer", "Player is in the vicinity of the finish");
             // Set all elements in the labyrinth to 0 (empty space)
             for (int[] ints : labyrinth) {
                 Arrays.fill(ints, 0);
             }
             return labyrinth;
         }
+
         // Move the player to the new position
         labyrinth[playerX][playerY] = 0; // Set the current position to 0 (empty space)
         labyrinth[newPlayerX][newPlayerY] = 2; // Set the new position to 2 (player)
