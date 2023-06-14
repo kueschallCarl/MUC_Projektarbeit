@@ -45,7 +45,7 @@ public class FirstFragment extends Fragment {
             LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
-        mqttManager = MqttManager.getInstance();
+        mqttManager = new MqttManager("first_fragment");
         binding = FragmentFirstBinding.inflate(inflater, container, false);
         return binding.getRoot();
 

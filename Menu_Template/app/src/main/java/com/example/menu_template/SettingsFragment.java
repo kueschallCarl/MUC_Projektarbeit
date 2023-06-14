@@ -73,7 +73,7 @@ public class SettingsFragment extends Fragment {
 
 
         // Get the singleton instance of MqttManager
-        mqttManager = MqttManager.getInstance();
+        mqttManager = new MqttManager("settings_fragment");
 
         // Handle connect button click
         binding.buttonSaveSettings.setOnClickListener(new View.OnClickListener() {

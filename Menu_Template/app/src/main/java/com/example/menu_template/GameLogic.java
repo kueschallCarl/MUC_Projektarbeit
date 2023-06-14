@@ -11,14 +11,19 @@ import java.util.List;
 import java.util.Random;
 import java.util.Stack;
 
-public class GameLogic implements MqttCallbackListener {
+public class GameLogic {
 
     public MqttManager mqttManager;
     private Context context;
     private SettingsDatabase settingsDatabase;
+    private SecondListener secondListener;
     public final ESPSteering espSteering;
     public final PhoneSteering phoneSteering;
     public int[][] labyrinth;
+
+    private float temperature;
+    private boolean gameRunning;
+    private int playTime;
     private int size = 10;
 
     private static final float MAX_ACCELEROMETER_RANGE = 9.81f; // Maximum range of accelerometer sensor (in m/s^2)
@@ -41,18 +46,21 @@ public class GameLogic implements MqttCallbackListener {
     private Handler handler; // Handler to run code on the main thread
 
 
-
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
         handler = new Handler();
-        this.mqttManager = MqttManager.getInstance();
-        mqttManager.setCallbackListener(this);
-        mqttManager.connect(settingsDatabase);
+        this.mqttManager = new MqttManager("game_logic");
+
+        secondListener = new SecondListener();
+        mqttManager.setCallbackListener(secondListener);
+        mqttManager.connect(settingsDatabase, "game_logic");
 
         this.espSteering = new ESPSteering(context);
         this.phoneSteering = new PhoneSteering(context);
         this.settingsDatabase = SettingsDatabase.getInstance(context);
 
+        this.playTime = 0;
+        this.temperature =0;
         this.size = Integer.parseInt(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
 
 
@@ -67,21 +75,57 @@ public class GameLogic implements MqttCallbackListener {
         }
     }
 
-    /**
-     * This method implements the MqttCallbackListener interface for onMessageReceived()
-     *
-     * @param topic   the MQTT topic
-     * @param message the current message received for that MQTT topic
-     */
-    @Override
-    public void onMessageReceived(String topic, String message) {
-        if (topic.equals(Constants.TEMP_TOPIC)) {
-            // Handle received message
-            String payload = new String(message);
-            // Process the payload as per your game logic
-            Log.d(Constants.TEMP_TOPIC, payload);
+
+
+    private class SecondListener implements MqttCallbackListener {
+        @Override
+        public void onMessageReceived(String topic, String message) {
+            if (topic.equals(Constants.TEMP_TOPIC)) {
+                Log.d(Constants.TEMP_TOPIC, message);
+                parseTemperature(message);
+            }
+        }
+
+        @Override
+        public void onConnectionLost() {
+            // Handle connection lost
+            // Show alert to the user
+            showAlert("Connection Lost", "The MQTT connection to "+
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
+        }
+
+        @Override
+        public void onConnectionError(String message) {
+            // Handle connection error
+            // Show alert to the user with the error message
+            showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
         }
     }
+
+    public void parseTemperature(String message){
+        this.temperature = Float.parseFloat(message);
+        if(gameRunning){
+            playTime+=1;
+        }
+    }
+
+    public void setGameRunning(boolean gameRunning){
+        this.gameRunning = gameRunning;
+    }
+
+    public boolean getGameRunning(){
+        return gameRunning;
+    }
+
+    public int getPlayTime(){
+        return playTime;
+    }
+
+    public float getTemperature(){
+        return temperature;
+    }
+
     public boolean gameStep(String steeringType) {
         Log.d("gameLoop", "Game Loop started");
         startSensors(steeringType);
@@ -102,8 +146,6 @@ public class GameLogic implements MqttCallbackListener {
         }
 
     }
-
-
 
     private float[] getValuesFromESPSensor() {
         // Replace with your implementation of getting values from ESP steering
@@ -494,23 +536,6 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-
-
-    @Override
-    public void onConnectionLost() {
-        // Handle connection lost
-        // Show alert to the user
-        showAlert("Connection Lost", "The MQTT connection to " +
-                mqttManager.MQTT_BROKER_METHOD + "://" + mqttManager.MQTT_BROKER_IP + ":" + mqttManager.MQTT_BROKER_PORT + " was lost.");
-    }
-
-    @Override
-    public void onConnectionError(String errorMessage) {
-        // Handle connection error
-        // Show alert to the user with the error message
-        showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
-                mqttManager.MQTT_BROKER_METHOD + "://" + mqttManager.MQTT_BROKER_IP + ":" + mqttManager.MQTT_BROKER_PORT);
-    }
 
     private void showAlert(String title, String message) {
         handler.post(new Runnable() {

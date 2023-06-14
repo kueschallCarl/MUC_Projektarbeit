@@ -22,7 +22,7 @@ import java.util.Arrays;
  * This class parses the ESP32's Accelerometer/Gyro-Value-Strings received through the MPU_TOPIC,
  * so that the GameLogic Class can access that data to calculate game-physics etc.
  */
-public class ESPSteering implements MqttCallbackListener{
+public class ESPSteering{
 
     private MqttManager mqttManager;
     private Context context;
@@ -33,11 +33,14 @@ public class ESPSteering implements MqttCallbackListener{
     private float gyro_y;
     private float gyro_z;
 
+    private FirstListener firstListener;
+
     public ESPSteering(Context context) {
         this.context = context;
-        mqttManager = MqttManager.getInstance();
-        mqttManager.setCallbackListener(this);
+        this.mqttManager = new MqttManager("esp_steering");
 
+        firstListener = new FirstListener();
+        mqttManager.setCallbackListener(firstListener);
     }
 
 
@@ -49,22 +52,33 @@ public class ESPSteering implements MqttCallbackListener{
         mqttManager.unsubscribeFromTopic(Constants.MPU_TOPIC);
 
     }
-    /**
-     * This method implements the MqttCallbackListener interface for onMessageReceived()
-     * @param topic the MQTT topic
-     * @param message the current message received for that MQTT topic
-     */
-    @Override
-    public void onMessageReceived(String topic, String message) {
-        if (topic.equals(Constants.MPU_TOPIC)) {
-            parseAndAssignValues(message);
-            // Handle received message
-            String payload = new String(message);
 
-            // Process the payload as per your game logic
-            Log.d(Constants.MPU_TOPIC, payload);
+    private class FirstListener implements MqttCallbackListener {
+        @Override
+        public void onMessageReceived(String topic, String message) {
+            if (topic.equals(Constants.MPU_TOPIC)) {
+                parseAndAssignValues(message);
+                Log.d(Constants.MPU_TOPIC, message);
+            }
+        }
+
+        @Override
+        public void onConnectionLost() {
+            // Handle connection lost
+            // Show alert to the user
+            showAlert("Connection Lost", "The MQTT connection to "+
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
+        }
+
+        @Override
+        public void onConnectionError(String message) {
+            // Handle connection error
+            // Show alert to the user with the error message
+            showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
         }
     }
+
 
 
     private void parseAndAssignValues(String message) {
@@ -88,20 +102,7 @@ public class ESPSteering implements MqttCallbackListener{
         }
     }
 
-    @Override
-    public void onConnectionLost() {
-        // Handle connection lost
-        // Show alert to the user
-        showAlert("Connection Lost", "The MQTT connection to "+
-                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
-    }
-    @Override
-    public void onConnectionError(String errorMessage) {
-        // Handle connection error
-        // Show alert to the user with the error message
-        showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
-                mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
-    }
+
     private void showAlert(String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(title)
