@@ -20,9 +20,27 @@ public class GameLogic implements MqttCallbackListener {
     public final PhoneSteering phoneSteering;
     public int[][] labyrinth;
     private int size = 10;
+
+    private static final float MAX_ACCELEROMETER_RANGE = 9.81f; // Maximum range of accelerometer sensor (in m/s^2)
+    private static final float MAX_GYROSCOPE_RANGE = 2000.0f; // Maximum range of gyroscope sensor (in degrees/second)
+    private static final float ALPHA = 0.5f; // Low-pass filter constant
+    private static final float ACCELEROMETER_WEIGHT = 0.7f; // Weight for accelerometer data in combined direction calculation
+    private static final float GYROSCOPE_WEIGHT = 0.3f; // Weight for gyroscope data in combined direction calculation
+    private static final float DEAD_ZONE_THRESHOLD = 0.05f; // Threshold to define the dead zone for sensor data (adjust as needed)
+    private static final float TILT_THRESHOLD = 0.1f; // Threshold for tilt detection (adjust as needed)
+    private static final float LOCK_THRESHOLD = 0.2f; // Threshold to lock/unlock the direction (adjust as needed)
+    private float lastAccX, lastAccY, lastAccZ; // Last accelerometer values
+    private long lastUpdateTime; // Time of the last update
+    private float[] highPassAcc = new float[3]; // High-pass filter output for accelerometer data
+    private float[] gyroOrientation = new float[3];
+    private boolean isDirectionLocked = false;
+    private int lastValidDirection = -1;
+    private int currentDirection = -1;
+
+
     private Handler handler; // Handler to run code on the main thread
 
-    private int lastValidDirection = -1; // Store the last valid direction
+
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
@@ -107,38 +125,116 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-
     private int parsePlayerDirection(float[] sensorData) {
-        // Assuming the gyro values determine the direction
+        float accelerometerX = sensorData[0];
+        float accelerometerY = sensorData[1];
+        float accelerometerZ = sensorData[2];
         float gyroX = sensorData[3];
         float gyroY = sensorData[4];
         float gyroZ = sensorData[5];
 
-        // Adjust the thresholds based on your specific requirements
-        float threshold = 0.6f;
+        // Normalize accelerometer and gyroscope data
+        float normalizedAccX = accelerometerX / MAX_ACCELEROMETER_RANGE;
+        float normalizedAccY = accelerometerY / MAX_ACCELEROMETER_RANGE;
+        float normalizedAccZ = accelerometerZ / MAX_ACCELEROMETER_RANGE;
 
-        // Check the absolute values of gyroX and gyroY to determine the direction
-        if (Math.abs(gyroX) > Math.abs(gyroY)) {
-            if (gyroX > threshold) {
-                // Player is tilting the phone or ESP to the right
-                lastValidDirection = 0;
-            } else if (gyroX < -threshold) {
-                // Player is tilting the phone or ESP to the left
-                lastValidDirection = 1;
+        float normalizedGyroX = gyroX / MAX_GYROSCOPE_RANGE;
+        float normalizedGyroY = gyroY / MAX_GYROSCOPE_RANGE;
+        float normalizedGyroZ = gyroZ / MAX_GYROSCOPE_RANGE;
+
+        // Apply high-pass filter to accelerometer data
+        highPassAcc[0] = ALPHA * (highPassAcc[0] + normalizedAccX - lastAccX);
+        highPassAcc[1] = ALPHA * (highPassAcc[1] + normalizedAccY - lastAccY);
+        highPassAcc[2] = ALPHA * (highPassAcc[2] + normalizedAccZ - lastAccZ);
+
+        // Calculate time elapsed since the last update
+        long currentTime = System.currentTimeMillis();
+        float deltaTime = (currentTime - lastUpdateTime) / 1000.0f;
+        lastUpdateTime = currentTime;
+
+        // Integrate gyroscope data using time-based integration
+        gyroOrientation[0] += normalizedGyroX * deltaTime;
+        gyroOrientation[1] += normalizedGyroY * deltaTime;
+        gyroOrientation[2] += normalizedGyroZ * deltaTime;
+
+        // Apply dead zone to prevent small fluctuations from triggering movements
+        float accelMagnitude = (float) Math.sqrt(highPassAcc[0] * highPassAcc[0] + highPassAcc[1] * highPassAcc[1] + highPassAcc[2] * highPassAcc[2]);
+        float gyroMagnitude = (float) Math.sqrt(gyroOrientation[0] * gyroOrientation[0] + gyroOrientation[1] * gyroOrientation[1] + gyroOrientation[2] * gyroOrientation[2]);
+
+        if (accelMagnitude < DEAD_ZONE_THRESHOLD) {
+            highPassAcc[0] = 0.0f;
+            highPassAcc[1] = 0.0f;
+            highPassAcc[2] = 0.0f;
+        }
+
+        if (gyroMagnitude < DEAD_ZONE_THRESHOLD) {
+            gyroOrientation[0] = 0.0f;
+            gyroOrientation[1] = 0.0f;
+            gyroOrientation[2] = 0.0f;
+        }
+
+        // Combine accelerometer and gyroscope data to determine direction
+        float combinedX = ACCELEROMETER_WEIGHT * highPassAcc[0] + GYROSCOPE_WEIGHT * gyroOrientation[0];
+        float combinedY = ACCELEROMETER_WEIGHT * highPassAcc[1] + GYROSCOPE_WEIGHT * gyroOrientation[1];
+        float combinedZ = ACCELEROMETER_WEIGHT * highPassAcc[2] + GYROSCOPE_WEIGHT * gyroOrientation[2];
+
+        // Adjust the thresholds based on your specific requirements
+        final float tiltThreshold = TILT_THRESHOLD;
+        final float lockThreshold = LOCK_THRESHOLD;
+
+        // Check if the current direction is locked
+        if (isDirectionLocked) {
+            // Check if the tilt threshold in the opposite direction is crossed
+            if (Math.abs(combinedX) < lockThreshold && Math.abs(combinedY) < lockThreshold) {
+                // Unlock the direction
+                isDirectionLocked = false;
+                // Reset gyroscope and accelerometer orientation
+                resetOrientation();
             }
         } else {
-            if (gyroY > threshold) {
-                // Player is tilting the phone or ESP forward
-                lastValidDirection = 3;
-            } else if (gyroY < -threshold) {
-                // Player is tilting the phone or ESP backward
-                lastValidDirection = 2;
+            // Check the combined values to determine the direction
+            if (Math.abs(combinedX) > tiltThreshold && Math.abs(combinedX) > Math.abs(combinedY)) {
+                if (combinedX > 0) {
+                    // Player is tilting the device to the right
+                    currentDirection = 2;
+                    isDirectionLocked = true;
+                } else {
+                    // Player is tilting the device to the left
+                    currentDirection = 3;
+                    isDirectionLocked = true;
+                }
+            } else if (Math.abs(combinedY) > tiltThreshold) {
+                if (combinedY > 0) {
+                    // Player is tilting the device forward
+                    currentDirection = 0;
+                    isDirectionLocked = true;
+                } else {
+                    // Player is tilting the device backward
+                    currentDirection = 1;
+                    isDirectionLocked = true;
+                }
             }
         }
 
-        Log.d("direction", "Returned direction: " + lastValidDirection);
+        if (currentDirection != -1) {
+            resetOrientation();
+            // Update the last valid direction
+            lastValidDirection = currentDirection;
+        }
+
         return lastValidDirection;
     }
+
+    private void resetOrientation() {
+        highPassAcc[0] = 0.0f;
+        highPassAcc[1] = 0.0f;
+        highPassAcc[2] = 0.0f;
+
+        gyroOrientation[0] = 0.0f;
+        gyroOrientation[1] = 0.0f;
+        gyroOrientation[2] = 0.0f;
+    }
+
 
 
 

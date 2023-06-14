@@ -49,21 +49,25 @@ public class SettingsFragment extends Fragment {
 
         this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
 
-        String radioButtonSelection = settingsDatabase.getSetting(SettingsDatabase.COLUMN_STEERING_METHOD);
-        sizeSettingEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
-        brokerIPEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP));
+        try {
+            String radioButtonSelection = settingsDatabase.getSetting(SettingsDatabase.COLUMN_STEERING_METHOD);
+            sizeSettingEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
+            brokerIPEditText.setText(settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP));
 
-        int radioButtonId = -1;
-        if (radioButtonSelection.equals("ESP32")) {
-            radioButtonId = R.id.radio_btn_esp32_steering;
-        } else if (radioButtonSelection.equals("Phone")) {
-            radioButtonId = R.id.radio_btn_phone_steering;
+            int radioButtonId = -1;
+            if (radioButtonSelection.equals("ESP32")) {
+                radioButtonId = R.id.radio_btn_esp32_steering;
+            } else if (radioButtonSelection.equals("Phone")) {
+                radioButtonId = R.id.radio_btn_phone_steering;
+            }
+            if (radioButtonId != -1) {
+                Log.d("radioButton", "Radio button: " + radioButtonId + "checked");
+                radioGroup.check(radioButtonId);
+            }
         }
-        if (radioButtonId != -1) {
-            Log.d("radioButton", "Radio button: "+radioButtonId+"checked");
-            radioGroup.check(radioButtonId);
+        catch (Exception e){
+            Log.d("Settings","Failed to retrieve any Settings from Database and set the xml" + e);
         }
-
 
 
 
