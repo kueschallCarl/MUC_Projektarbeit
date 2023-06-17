@@ -9,7 +9,6 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  * This class handles MQTT connection and handles MQTT events
  */
 public class MqttManager {
-    private static MqttManager instance;
 
     private float acc_x;
     private float acc_y;
@@ -22,25 +21,14 @@ public class MqttManager {
     public String MQTT_BROKER_IP = "198.162.0.89";
     public String MQTT_BROKER_PORT = "1883";
     public String MQTT_BROKER_METHOD = "tcp";
-    private static final String MQTT_CLIENT_ID = "mosquitto_id";
+    private static String MQTT_CLIENT_ID = "mosquitto_id";
     private static final String MPU_TOPIC = "mpu/K05";
     private MqttClient mqttClient;
+    private String clientId;
     private MqttCallbackListener callbackListener;
 
-    private MqttManager() {
-        // Private constructor to prevent instantiation outside the class
-    }
-
-    /**
-     * This method returns the singleton instance of MqttManager
-     *
-     * @return the MqttManager instance
-     */
-    public static MqttManager getInstance() {
-        if (instance == null) {
-            instance = new MqttManager();
-        }
-        return instance;
+    public MqttManager(String clientId) {
+        MQTT_CLIENT_ID = clientId;
     }
 
     /**
@@ -94,11 +82,12 @@ public class MqttManager {
     /**
      * This method attempts to connect to an MQTT broker
      */
-    public void connect(SettingsDatabase settingsDatabase) {
+    public void connect(SettingsDatabase settingsDatabase, String clientId) {
         try {
+            this.clientId = clientId;
 
             MQTT_BROKER_IP = settingsDatabase.getSetting(SettingsDatabase.COLUMN_BROKER_IP);
-            mqttClient = new MqttClient(MQTT_BROKER_METHOD + "://" + MQTT_BROKER_IP + ":" + MQTT_BROKER_PORT, MQTT_CLIENT_ID, new MemoryPersistence());
+            mqttClient = new MqttClient(MQTT_BROKER_METHOD + "://" + MQTT_BROKER_IP + ":" + MQTT_BROKER_PORT, this.clientId, new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
 
                 /**

@@ -11,27 +11,58 @@ import java.util.List;
 import java.util.Random;
 import java.util.Stack;
 
-public class GameLogic implements MqttCallbackListener {
+public class GameLogic {
 
     public MqttManager mqttManager;
     private Context context;
+    private SettingsDatabase settingsDatabase;
+    private SecondListener secondListener;
     public final ESPSteering espSteering;
     public final PhoneSteering phoneSteering;
     public int[][] labyrinth;
-    private final int size = 10;
+
+    private float temperature;
+    private boolean gameRunning;
+    private int playTime;
+    private int size = 10;
+
+    private static final float MAX_ACCELEROMETER_RANGE = 9.81f; // Maximum range of accelerometer sensor (in m/s^2)
+    private static final float MAX_GYROSCOPE_RANGE = 2000.0f; // Maximum range of gyroscope sensor (in degrees/second)
+    private static final float ALPHA = 0.5f; // Low-pass filter constant
+    private static final float ACCELEROMETER_WEIGHT = 0.7f; // Weight for accelerometer data in combined direction calculation
+    private static final float GYROSCOPE_WEIGHT = 0.3f; // Weight for gyroscope data in combined direction calculation
+    private static final float DEAD_ZONE_THRESHOLD = 0.05f; // Threshold to define the dead zone for sensor data (adjust as needed)
+    private static final float TILT_THRESHOLD = 0.1f; // Threshold for tilt detection (adjust as needed)
+    private static final float LOCK_THRESHOLD = 0.2f; // Threshold to lock/unlock the direction (adjust as needed)
+    private float lastAccX, lastAccY, lastAccZ; // Last accelerometer values
+    private long lastUpdateTime; // Time of the last update
+    private float[] highPassAcc = new float[3]; // High-pass filter output for accelerometer data
+    private float[] gyroOrientation = new float[3];
+    private boolean isDirectionLocked = false;
+    private int lastValidDirection = -1;
+    private int currentDirection = -1;
+
+
     private Handler handler; // Handler to run code on the main thread
 
-    private int lastValidDirection = -1; // Store the last valid direction
 
     public GameLogic(Context context, SettingsDatabase settingsDatabase) {
         this.context = context;
-        handler = new Handler(); // Initialize the handler
-        this.mqttManager = MqttManager.getInstance();
-        mqttManager.setCallbackListener(this);
-        mqttManager.connect(settingsDatabase);
+        handler = new Handler();
+        this.mqttManager = new MqttManager("game_logic");
+
+        secondListener = new SecondListener();
+        mqttManager.setCallbackListener(secondListener);
+        mqttManager.connect(settingsDatabase, "game_logic");
 
         this.espSteering = new ESPSteering(context);
         this.phoneSteering = new PhoneSteering(context);
+        this.settingsDatabase = SettingsDatabase.getInstance(context);
+
+        this.playTime = 0;
+        this.temperature =0;
+        this.size = Integer.parseInt(settingsDatabase.getSetting(SettingsDatabase.COLUMN_LABYRINTH_SIZE));
+
 
         mqttManager.publishToTopic("0", Constants.FINISHED_TOPIC);
         mqttManager.subscribeToTopic(Constants.TEMP_TOPIC);
@@ -44,6 +75,56 @@ public class GameLogic implements MqttCallbackListener {
         }
     }
 
+
+
+    private class SecondListener implements MqttCallbackListener {
+        @Override
+        public void onMessageReceived(String topic, String message) {
+            if (topic.equals(Constants.TEMP_TOPIC)) {
+                Log.d(Constants.TEMP_TOPIC, message);
+                parseTemperature(message);
+            }
+        }
+
+        @Override
+        public void onConnectionLost() {
+            // Handle connection lost
+            // Show alert to the user
+            showAlert("Connection Lost", "The MQTT connection to "+
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT + "was lost.");
+        }
+
+        @Override
+        public void onConnectionError(String message) {
+            // Handle connection error
+            // Show alert to the user with the error message
+            showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
+                    mqttManager.MQTT_BROKER_METHOD+"://"+mqttManager.MQTT_BROKER_IP+":"+mqttManager.MQTT_BROKER_PORT);
+        }
+    }
+
+    public void parseTemperature(String message){
+        this.temperature = Float.parseFloat(message);
+        if(gameRunning){
+            playTime+=1;
+        }
+    }
+
+    public void setGameRunning(boolean gameRunning){
+        this.gameRunning = gameRunning;
+    }
+
+    public boolean getGameRunning(){
+        return gameRunning;
+    }
+
+    public int getPlayTime(){
+        return playTime;
+    }
+
+    public float getTemperature(){
+        return temperature;
+    }
 
     public boolean gameStep(String steeringType) {
         Log.d("gameLoop", "Game Loop started");
@@ -61,18 +142,10 @@ public class GameLogic implements MqttCallbackListener {
         }
 
         else{
-            try {
-                Thread.sleep(100); // Add a 100ms delay
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-
-            }
             return false;
         }
 
     }
-
-
 
     private float[] getValuesFromESPSensor() {
         // Replace with your implementation of getting values from ESP steering
@@ -102,38 +175,116 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-
     private int parsePlayerDirection(float[] sensorData) {
-        // Assuming the gyro values determine the direction
+        float accelerometerX = sensorData[0];
+        float accelerometerY = sensorData[1];
+        float accelerometerZ = sensorData[2];
         float gyroX = sensorData[3];
         float gyroY = sensorData[4];
         float gyroZ = sensorData[5];
 
-        // Adjust the thresholds based on your specific requirements
-        float threshold = 0.6f;
+        // Normalize accelerometer and gyroscope data
+        float normalizedAccX = accelerometerX / MAX_ACCELEROMETER_RANGE;
+        float normalizedAccY = accelerometerY / MAX_ACCELEROMETER_RANGE;
+        float normalizedAccZ = accelerometerZ / MAX_ACCELEROMETER_RANGE;
 
-        // Check the absolute values of gyroX and gyroY to determine the direction
-        if (Math.abs(gyroX) > Math.abs(gyroY)) {
-            if (gyroX > threshold) {
-                // Player is tilting the phone or ESP to the right
-                lastValidDirection = 0;
-            } else if (gyroX < -threshold) {
-                // Player is tilting the phone or ESP to the left
-                lastValidDirection = 1;
+        float normalizedGyroX = gyroX / MAX_GYROSCOPE_RANGE;
+        float normalizedGyroY = gyroY / MAX_GYROSCOPE_RANGE;
+        float normalizedGyroZ = gyroZ / MAX_GYROSCOPE_RANGE;
+
+        // Apply high-pass filter to accelerometer data
+        highPassAcc[0] = ALPHA * (highPassAcc[0] + normalizedAccX - lastAccX);
+        highPassAcc[1] = ALPHA * (highPassAcc[1] + normalizedAccY - lastAccY);
+        highPassAcc[2] = ALPHA * (highPassAcc[2] + normalizedAccZ - lastAccZ);
+
+        // Calculate time elapsed since the last update
+        long currentTime = System.currentTimeMillis();
+        float deltaTime = (currentTime - lastUpdateTime) / 1000.0f;
+        lastUpdateTime = currentTime;
+
+        // Integrate gyroscope data using time-based integration
+        gyroOrientation[0] += normalizedGyroX * deltaTime;
+        gyroOrientation[1] += normalizedGyroY * deltaTime;
+        gyroOrientation[2] += normalizedGyroZ * deltaTime;
+
+        // Apply dead zone to prevent small fluctuations from triggering movements
+        float accelMagnitude = (float) Math.sqrt(highPassAcc[0] * highPassAcc[0] + highPassAcc[1] * highPassAcc[1] + highPassAcc[2] * highPassAcc[2]);
+        float gyroMagnitude = (float) Math.sqrt(gyroOrientation[0] * gyroOrientation[0] + gyroOrientation[1] * gyroOrientation[1] + gyroOrientation[2] * gyroOrientation[2]);
+
+        if (accelMagnitude < DEAD_ZONE_THRESHOLD) {
+            highPassAcc[0] = 0.0f;
+            highPassAcc[1] = 0.0f;
+            highPassAcc[2] = 0.0f;
+        }
+
+        if (gyroMagnitude < DEAD_ZONE_THRESHOLD) {
+            gyroOrientation[0] = 0.0f;
+            gyroOrientation[1] = 0.0f;
+            gyroOrientation[2] = 0.0f;
+        }
+
+        // Combine accelerometer and gyroscope data to determine direction
+        float combinedX = ACCELEROMETER_WEIGHT * highPassAcc[0] + GYROSCOPE_WEIGHT * gyroOrientation[0];
+        float combinedY = ACCELEROMETER_WEIGHT * highPassAcc[1] + GYROSCOPE_WEIGHT * gyroOrientation[1];
+        float combinedZ = ACCELEROMETER_WEIGHT * highPassAcc[2] + GYROSCOPE_WEIGHT * gyroOrientation[2];
+
+        // Adjust the thresholds based on your specific requirements
+        final float tiltThreshold = TILT_THRESHOLD;
+        final float lockThreshold = LOCK_THRESHOLD;
+
+        // Check if the current direction is locked
+        if (isDirectionLocked) {
+            // Check if the tilt threshold in the opposite direction is crossed
+            if (Math.abs(combinedX) < lockThreshold && Math.abs(combinedY) < lockThreshold) {
+                // Unlock the direction
+                isDirectionLocked = false;
+                // Reset gyroscope and accelerometer orientation
+                resetOrientation();
             }
         } else {
-            if (gyroY > threshold) {
-                // Player is tilting the phone or ESP forward
-                lastValidDirection = 3;
-            } else if (gyroY < -threshold) {
-                // Player is tilting the phone or ESP backward
-                lastValidDirection = 2;
+            // Check the combined values to determine the direction
+            if (Math.abs(combinedX) > tiltThreshold && Math.abs(combinedX) > Math.abs(combinedY)) {
+                if (combinedX > 0) {
+                    // Player is tilting the device to the right
+                    currentDirection = 2;
+                    isDirectionLocked = true;
+                } else {
+                    // Player is tilting the device to the left
+                    currentDirection = 3;
+                    isDirectionLocked = true;
+                }
+            } else if (Math.abs(combinedY) > tiltThreshold) {
+                if (combinedY > 0) {
+                    // Player is tilting the device forward
+                    currentDirection = 0;
+                    isDirectionLocked = true;
+                } else {
+                    // Player is tilting the device backward
+                    currentDirection = 1;
+                    isDirectionLocked = true;
+                }
             }
         }
 
-        Log.d("direction", "Returned direction: " + lastValidDirection);
+        if (currentDirection != -1) {
+            resetOrientation();
+            // Update the last valid direction
+            lastValidDirection = currentDirection;
+        }
+
         return lastValidDirection;
     }
+
+    private void resetOrientation() {
+        highPassAcc[0] = 0.0f;
+        highPassAcc[1] = 0.0f;
+        highPassAcc[2] = 0.0f;
+
+        gyroOrientation[0] = 0.0f;
+        gyroOrientation[1] = 0.0f;
+        gyroOrientation[2] = 0.0f;
+    }
+
 
 
 
@@ -191,6 +342,21 @@ public class GameLogic implements MqttCallbackListener {
             }
         }
 
+        // Check if the new position is in the vicinity of the finish (value 3)
+        int finishX = -1;
+        int finishY = -1;
+
+        // Find the position of the finish (value 3) in the labyrinth
+        for (int i = 0; i < labyrinth.length; i++) {
+            for (int j = 0; j < labyrinth[i].length; j++) {
+                if (labyrinth[i][j] == 3) {
+                    finishX = i;
+                    finishY = j;
+                    break;
+                }
+            }
+        }
+
         if (playerX == -1 || playerY == -1) {
             // Player not found in the labyrinth
             Log.d("movePlayer", "Player not found in the labyrinth");
@@ -234,17 +400,21 @@ public class GameLogic implements MqttCallbackListener {
             return labyrinth;
         }
 
-
+        // Calculate the difference between the player's position and the finish's position
+        int deltaX = Math.abs(newPlayerX - finishX);
+        int deltaY = Math.abs(newPlayerY - finishY);
 
         // Check if the new position is the winning position (value 3)
-        if (labyrinth[newPlayerX][newPlayerY] == 3) {
-            Log.d("movePlayer", "Player won the game!");
+        if ((deltaX == 0 && deltaY == 1) || (deltaX == 1 && deltaY == 0)) {
+            // Player is in the vicinity of the finish
+            Log.d("movePlayer", "Player is in the vicinity of the finish");
             // Set all elements in the labyrinth to 0 (empty space)
             for (int[] ints : labyrinth) {
                 Arrays.fill(ints, 0);
             }
             return labyrinth;
         }
+
         // Move the player to the new position
         labyrinth[playerX][playerY] = 0; // Set the current position to 0 (empty space)
         labyrinth[newPlayerX][newPlayerY] = 2; // Set the new position to 2 (player)
@@ -366,37 +536,6 @@ public class GameLogic implements MqttCallbackListener {
     }
 
 
-    /**
-     * This method implements the MqttCallbackListener interface for onMessageReceived()
-     *
-     * @param topic   the MQTT topic
-     * @param message the current message received for that MQTT topic
-     */
-    @Override
-    public void onMessageReceived(String topic, String message) {
-        if (topic.equals(Constants.TEMP_TOPIC)) {
-            // Handle received message
-            String payload = new String(message);
-            // Process the payload as per your game logic
-            Log.d(Constants.TEMP_TOPIC, payload);
-        }
-    }
-
-    @Override
-    public void onConnectionLost() {
-        // Handle connection lost
-        // Show alert to the user
-        showAlert("Connection Lost", "The MQTT connection to " +
-                mqttManager.MQTT_BROKER_METHOD + "://" + mqttManager.MQTT_BROKER_IP + ":" + mqttManager.MQTT_BROKER_PORT + " was lost.");
-    }
-
-    @Override
-    public void onConnectionError(String errorMessage) {
-        // Handle connection error
-        // Show alert to the user with the error message
-        showAlert("Connection Error", "Failed to connect to the MQTT broker at: " +
-                mqttManager.MQTT_BROKER_METHOD + "://" + mqttManager.MQTT_BROKER_IP + ":" + mqttManager.MQTT_BROKER_PORT);
-    }
 
     private void showAlert(String title, String message) {
         handler.post(new Runnable() {

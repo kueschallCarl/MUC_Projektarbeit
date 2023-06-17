@@ -33,6 +33,21 @@
         app:layout_constraintTop_toBottomOf="@+id/broker_address_label"
         app:layout_constraintVertical_bias="0.103" />
 
+    <TextView
+        android:id="@+id/size_setting_label"
+        android:layout_width="181dp"
+        android:layout_height="28dp"
+        android:text="@string/size_setting_label"
+        android:textAlignment="textEnd"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/size_setting"
+        app:layout_constraintHorizontal_bias="0.222"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/steering_method_label"
+        app:layout_constraintVertical_bias="0.29"
+        tools:text="@string/size_setting_label" />
+
     <EditText
         android:id="@+id/broker_address_text_field"
         android:layout_width="199dp"
@@ -44,6 +59,19 @@
         android:text="@string/broker_address_text_field"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/size_setting"
+        android:layout_width="199dp"
+        android:layout_height="65dp"
+        android:layout_marginEnd="4dp"
+        android:ems="10"
+        android:inputType="text"
+        android:text="@string/size_setting_default"
+        app:layout_constraintBottom_toTopOf="@+id/button_save_settings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/radio_btn_group_steering_method"
+        app:layout_constraintVertical_bias="0.59" />
 
     <RadioGroup
         android:id="@+id/radio_btn_group_steering_method"
@@ -74,9 +102,9 @@
         android:text="@string/button_save_settings_label"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.95"
+        app:layout_constraintHorizontal_bias="0.962"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/radio_btn_group_steering_method"
-        app:layout_constraintVertical_bias="0.042" />
+        app:layout_constraintVertical_bias="0.325" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
