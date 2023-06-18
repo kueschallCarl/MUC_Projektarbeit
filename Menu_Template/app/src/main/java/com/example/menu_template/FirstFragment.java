@@ -19,10 +19,16 @@ import org.eclipse.paho.client.mqttv3.*;
 import com.example.menu_template.MqttManager;
 import com.example.menu_template.MqttCallbackListener;
 import com.example.menu_template.Constants.*;
+
+import android.media.MediaPlayer;
+
 public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
     private MqttManager mqttManager;
+
+    private MediaPlayer mediaPlayer;
+
 
     /**
      * This method overrides the implementation of creating the View
@@ -95,6 +101,12 @@ public class FirstFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    private void startBackgroundMusic() {
+        mediaPlayer = MediaPlayer.create(getContext(), R.raw.background_music);
+        mediaPlayer.setLooping(true); // Set the music to loop continuously
+        mediaPlayer.start();
+    }
+
 
 
     /**
@@ -104,6 +116,15 @@ public class FirstFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+
+    }
+
+    private void stopBackgroundMusic() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
     }
 
 }

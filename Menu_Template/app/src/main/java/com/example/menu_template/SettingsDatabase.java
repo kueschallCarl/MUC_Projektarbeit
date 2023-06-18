@@ -19,10 +19,57 @@ public class SettingsDatabase extends SQLiteOpenHelper {
     private static SettingsDatabase instance = null;
     private Context mContext;
 
+    public static final String COLUMN_AUDIO_ENABLED = "audio_enabled";
+
+
     private SettingsDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         mContext = context;
     }
+
+    public void updateAudioEnabled(boolean audioEnabled) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_AUDIO_ENABLED, audioEnabled ? 1 : 0);
+
+        db.update(TABLE_NAME, values, null, null);
+    }
+
+
+    public boolean isAudioEnabled() {
+        SQLiteDatabase db = getReadableDatabase();
+
+        String[] projection = {COLUMN_AUDIO_ENABLED};
+        Cursor cursor = db.query(TABLE_NAME, projection, null, null, null, null, null);
+
+        boolean audioEnabled = false;
+
+        if (cursor.moveToFirst()) {
+            int columnIndex = cursor.getColumnIndex(COLUMN_AUDIO_ENABLED);
+            int audioEnabledValue = cursor.getInt(columnIndex);
+            audioEnabled = (audioEnabledValue == 1);
+        }
+
+        cursor.close();
+
+        return audioEnabled;
+    }
+
+    public boolean containsSetting(String columnName) {
+        SQLiteDatabase db = getReadableDatabase();
+
+        String selectQuery = "SELECT * FROM " + TABLE_NAME + " WHERE " + columnName + " IS NOT NULL";
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        boolean containsSetting = cursor.getCount() > 0;
+
+        cursor.close();
+        db.close();
+
+        return containsSetting;
+    }
+
 
     public static SettingsDatabase getInstance(Context context) {
         if (instance == null) {

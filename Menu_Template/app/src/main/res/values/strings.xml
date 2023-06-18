@@ -19,4 +19,9 @@
 
     <string name="broker_address_text_field">192.168.0.89</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+
+    <string name="audio_button_on_label">Audio On</string>
+    <string name="audio_button_off_label">Audio Off</string>
+
+
 </resources>

@@ -79,4 +79,15 @@
         app:layout_constraintTop_toBottomOf="@+id/radio_btn_group_steering_method"
         app:layout_constraintVertical_bias="0.042" />
 
+    <ToggleButton
+        android:id="@+id/toggle_button_audio"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textOff="@string/audio_button_off_label"
+        android:textOn="@string/audio_button_on_label"
+        app:layout_constraintTop_toBottomOf="@+id/button_save_settings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

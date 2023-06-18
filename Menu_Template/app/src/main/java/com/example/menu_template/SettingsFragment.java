@@ -27,12 +27,17 @@ import com.example.menu_template.databinding.FragmentSettingsBinding;
 
 import java.util.Set;
 
+import android.widget.ToggleButton;
+import android.widget.CompoundButton;
 
 public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
     private MqttManager mqttManager;
     private String SteeringMethod;
     private SettingsDatabase settingsDatabase;
+
+    private boolean isAudioEnabled;
+
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentSettingsBinding.inflate(inflater, container, false);
@@ -42,6 +47,34 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         this.settingsDatabase = SettingsDatabase.getInstance(requireContext());
+
+//01
+        ToggleButton toggleButtonAudio = view.findViewById(R.id.toggle_button_audio);
+        isAudioEnabled = true; // Set the initial state
+
+//1
+        // Retrieve audio setting from the database
+        boolean containsAudioSetting = settingsDatabase.containsSetting(SettingsDatabase.COLUMN_AUDIO_ENABLED);
+
+// Set the toggle button state accordingly
+        toggleButtonAudio.setChecked(containsAudioSetting);
+
+
+// Retrieve audio setting from the database
+        isAudioEnabled = settingsDatabase.isAudioEnabled();
+
+// Set the toggle button state accordingly
+        toggleButtonAudio.setChecked(isAudioEnabled);
+
+        toggleButtonAudio.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                isAudioEnabled = isChecked;
+                settingsDatabase.updateAudioEnabled(isAudioEnabled);
+                // Update the audio state according to the isChecked value
+            }
+        });
+//1
 
         // Get the singleton instance of MqttManager
         mqttManager = MqttManager.getInstance();
@@ -74,7 +107,14 @@ public class SettingsFragment extends Fragment {
         super.onCreate(savedInstanceState);
         settingsDatabase = SettingsDatabase.getInstance(requireContext());
         setHasOptionsMenu(true);
+
+
+        // Initialize audio setting if it doesn't exist in the database
+        if (!settingsDatabase.containsSetting(SettingsDatabase.COLUMN_AUDIO_ENABLED)) {
+            settingsDatabase.updateAudioEnabled(true);
+        }
     }
+
 
 
 

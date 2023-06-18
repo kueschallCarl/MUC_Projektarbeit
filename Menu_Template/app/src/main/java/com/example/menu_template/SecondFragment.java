@@ -21,6 +21,8 @@ import com.example.menu_template.SettingsDatabase;
 import com.example.menu_template.SettingsFragment;
 import com.example.menu_template.databinding.FragmentSecondBinding;
 
+import android.media.MediaPlayer;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SecondFragment extends Fragment {
@@ -135,6 +137,13 @@ public class SecondFragment extends Fragment {
                 .setPositiveButton("OK", null)
                 .show();
     }
+
+    // Play the winning sound
+    private void playWinningSound() {
+        MediaPlayer mediaPlayer = MediaPlayer.create(getContext(), R.raw.winning_sound);
+        mediaPlayer.start();
+    }
+
 
     @Override
     public void onDestroyView() {
